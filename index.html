@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Casa · Rabat</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#1F3A9E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout : carnet de route mobile — bandeau zellige, jours en onglets, étapes en frise, barre d'onglets en bas */
+:root{
+  --bg:#EEF3F2; --surface:#FFFFFF; --ink:#10302B; --muted:#5A706B; --line:#D5E0DD;
+  --accent:#1F3A9E; --accent-ink:#FFFFFF; --accent-soft:#E3E8FA;
+  --saffron:#D9961C; --mint:#1C8A62; --mint-soft:#DDF1E8; --warn:#B4531B; --warn-soft:#FBEADF;
+  --font-display:"Marcellus", "Georgia", serif;
+  --font-body:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius:14px; --nav-h:64px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0B1513; --surface:#13211E; --ink:#E4EEEB; --muted:#93A9A4; --line:#253A35;
+  --accent:#8EA0FF; --accent-ink:#0B1513; --accent-soft:#1E2A52;
+  --saffron:#F1B84A; --mint:#4CC79A; --mint-soft:#143328; --warn:#F09A62; --warn-soft:#3A2418;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0B1513; --surface:#13211E; --ink:#E4EEEB; --muted:#93A9A4; --line:#253A35;
+  --accent:#8EA0FF; --accent-ink:#0B1513; --accent-soft:#1E2A52;
+  --saffron:#F1B84A; --mint:#4CC79A; --mint-soft:#143328; --warn:#F09A62; --warn-soft:#3A2418;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 16px)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:#1F3A9E}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:inherit}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* ---------- Bandeau ---------- */
+.hero{background-color:#1F3A9E;color:#fff;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;inset:0;opacity:.16;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23fff' stroke-width='1.4'%3E%3Crect x='16' y='16' width='24' height='24'/%3E%3Crect x='16' y='16' width='24' height='24' transform='rotate(45 28 28)'/%3E%3Ccircle cx='28' cy='28' r='5'/%3E%3Cpath d='M0 0l8 8M56 0l-8 8M0 56l8-8M56 56l-8-8'/%3E%3C/g%3E%3C/svg%3E");}
+.hero .wrap{position:relative;z-index:1;padding-block:22px 18px}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;opacity:.8}
+.hero h1{font-family:var(--font-display);font-weight:400;font-size:clamp(30px,8vw,42px);line-height:1.05;margin:6px 0 4px;text-wrap:balance}
+.hero p{margin:0;opacity:.85;font-size:14px}
+.route{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;font-weight:600;flex-wrap:wrap}
+.route span{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);padding:4px 10px;border-radius:999px}
+.ring{flex:none;width:64px;height:64px;position:relative}
+.ring svg{width:64px;height:64px;transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-mono);font-size:13px}
+
+/* ---------- Jours ---------- */
+.days{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.days .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding-block:10px}
+.day-btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 4px 7px;text-align:center;display:grid;gap:1px;position:relative}
+.day-btn .d{font-weight:800;font-size:14px}
+.day-btn .c{font-size:11px;color:var(--muted)}
+.day-btn .bar{height:3px;border-radius:3px;background:var(--line);margin:5px 8px 0;overflow:hidden}
+.day-btn .bar i{display:block;height:100%;background:var(--mint)}
+.day-btn[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.day-btn[aria-selected="true"] .c{color:var(--accent-ink);opacity:.8}
+.day-btn[aria-selected="true"] .bar{background:rgba(255,255,255,.3)}
+.today-dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--saffron)}
+
+/* ---------- En-tête du jour ---------- */
+.day-head{padding-block:18px 6px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.day-head h2{font-family:var(--font-display);font-weight:400;font-size:28px;margin:0;line-height:1.1}
+.day-head .sub{color:var(--muted);font-size:13px;margin-top:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:700;font-size:13px;text-decoration:none;white-space:nowrap}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent}
+.btn.small{padding:6px 11px;font-size:12px}
+.btn svg{width:15px;height:15px;flex:none}
+
+/* ---------- Frise ---------- */
+.timeline{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:12px}
+.step{display:grid;grid-template-columns:54px 1fr;gap:10px}
+.when{font-family:var(--font-mono);font-size:13px;font-weight:700;padding-top:16px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;min-width:0;position:relative}
+.step.done .card{border-color:color-mix(in srgb,var(--mint) 45%,var(--line))}
+.card-top{display:flex;gap:10px;align-items:flex-start}
+.card-top .t{flex:1;min-width:0}
+.tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.tag.extra{background:var(--mint-soft);color:var(--mint)}
+.card h3{margin:6px 0 2px;font-size:17px;line-height:1.25;font-weight:800;text-wrap:balance}
+.where{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.check{flex:none;width:34px;height:34px;border-radius:50%;border:2px solid var(--line);background:transparent;display:grid;place-items:center;color:transparent;transition:.15s}
+.check svg{width:16px;height:16px}
+.step.done .check{background:var(--mint);border-color:var(--mint);color:#fff}
+.desc{margin:10px 0 0;font-size:14px}
+.facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.fact{font-size:12px;font-weight:600;background:var(--bg);border:1px solid var(--line);padding:3px 9px;border-radius:8px}
+.tips{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+.tips li{font-size:13px;padding-left:16px;position:relative}
+.tips li::before{content:"";position:absolute;left:3px;top:.6em;width:6px;height:6px;transform:rotate(45deg);background:var(--saffron)}
+.alert{margin-top:10px;font-size:13px;background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:8px 10px;font-weight:600}
+.alt{margin-top:10px;border:1px dashed var(--line);border-radius:12px;padding:10px 12px}
+.alt h4{margin:0 0 4px;font-size:14px}
+.phone-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:13px}
+.phone-line .num{font-family:var(--font-mono);font-weight:700;user-select:all}
+.phone-line .unk{color:var(--muted)}
+.linkish{background:none;border:0;padding:0;color:var(--accent);font-weight:700;font-size:12px;text-decoration:underline;text-underline-offset:2px}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.review{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:grid;gap:8px}
+.stars{display:flex;gap:2px}
+.star{background:none;border:0;padding:2px;color:var(--line);line-height:0}
+.star svg{width:24px;height:24px}
+.star.on{color:var(--saffron)}
+.note{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 10px;font-size:14px;resize:vertical;min-height:40px}
+.inline-edit{display:flex;gap:6px;margin-top:8px}
+.inline-edit input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:7px 10px}
+.del{background:none;border:0;color:var(--warn);font-weight:700;font-size:12px;padding:0}
+
+.add-row{display:flex;justify-content:center;margin:18px 0 6px}
+
+/* ---------- Carnet ---------- */
+.section-title{font-family:var(--font-display);font-weight:400;font-size:28px;margin:22px 0 4px}
+.lead{color:var(--muted);margin:0 0 14px;font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px}
+.stat b{display:block;font-family:var(--font-mono);font-size:22px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.log{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:8px}
+.log li{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:2px}
+.log .row{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.log .row strong{min-width:0;overflow-wrap:anywhere}
+.log .meta{font-size:12px;color:var(--muted)}
+.log .mini{color:var(--saffron);font-size:14px;letter-spacing:1px;white-space:nowrap}
+.log q{font-size:13px;font-style:italic}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius);padding:18px;text-align:center;color:var(--muted);font-size:14px}
+
+/* ---------- Infos ---------- */
+.info-grid{display:grid;gap:12px}
+.info{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+.info h3{margin:0 0 8px;font-size:16px}
+.info p{margin:0 0 8px;font-size:14px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-weight:600}
+.phrases{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.phrase{background:var(--bg);border-radius:10px;padding:8px 10px}
+.phrase b{display:block;font-size:14px}
+.phrase span{font-size:12px;color:var(--muted)}
+.field{display:grid;gap:4px;font-size:13px;font-weight:600}
+.field input,.field select,.field textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 10px;font-weight:500;width:100%}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.stepper button{border:0;background:var(--bg);width:36px;height:34px;font-size:18px;font-weight:700}
+.stepper output{min-width:36px;text-align:center;font-family:var(--font-mono);font-weight:700}
+
+/* ---------- Navigation ---------- */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.nav .in{max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);height:var(--nav-h)}
+.nav button{border:0;background:none;display:grid;place-items:center;align-content:center;gap:3px;font-size:11px;font-weight:700;color:var(--muted)}
+.nav button svg{width:22px;height:22px}
+.nav button[aria-current="page"]{color:var(--accent)}
+
+/* ---------- Feuille d'ajout ---------- */
+.sheet{position:fixed;inset:0;z-index:60;display:grid;align-items:end;background:rgba(5,12,10,.5)}
+.sheet .panel{background:var(--surface);border-radius:20px 20px 0 0;max-height:92vh;overflow:auto;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));width:100%;max-width:720px;margin:0 auto}
+.sheet h3{font-family:var(--font-display);font-weight:400;font-size:24px;margin:0 0 12px}
+.form{display:grid;gap:10px}
+.form .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+
+.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 14px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:13px;font-weight:700;z-index:70;max-width:calc(100% - 32px);text-align:center}
+
+@media (max-width:420px){
+  .step{grid-template-columns:44px 1fr;gap:8px}
+  .when{font-size:12px}
+  .phrases{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-top">
+      <div>
+        <div class="eyebrow">Carnet de voyage · Maroc</div>
+        <h1>Casablanca &amp; Rabat</h1>
+        <p>4 jours, 2 villes, tout le programme au même endroit.</p>
+      </div>
+      <div class="ring" aria-label="Progression du voyage">
+        <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="6"/><circle id="ringArc" cx="32" cy="32" r="27" fill="none" stroke="#F1B84A" stroke-width="6" stroke-linecap="round" stroke-dasharray="169.6" stroke-dashoffset="169.6"/></svg>
+        <b id="ringTxt">0%</b>
+      </div>
+    </div>
+    <div class="route"><span>Mer · Casa</span><span>Jeu · → Rabat</span><span>Ven · Rabat</span><span>Sam · → Casa</span></div>
+  </div>
+</header>
+
+<main id="view"></main>
+
+<nav class="nav" aria-label="Navigation">
+  <div class="in">
+    <button data-tab="programme" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Programme</button>
+    <button data-tab="carnet">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/></svg>Mon carnet</button>
+    <button data-tab="infos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>Infos utiles</button>
+  </div>
+</nav>
+
+<script>
+/* ================== Données du programme ================== */
+const ONCF_URL = "https://www.oncf-voyages.ma/";
+const DAYS = [
+ { id:"mer", name:"Mercredi", short:"Mer", wd:3, city:"Casablanca", sub:"Après-midi détente à Anfa et dîner à Aïn Diab",
+   items:[
+    { id:"casa-hotel", time:"17:30", title:"Café au Casablanca Hotel", cat:"Café", place:"Le Casablanca Hotel",
+      addr:"19 Bd Moulay Rachid, Anfa, Casablanca", phone:"+212522649797", email:"contact@lecasablanca-hotel.com",
+      desc:"Pause café dans le salon ou sur la terrasse de cet hôtel de charme, au cœur du quartier résidentiel d'Anfa. Idéal pour se poser après l'arrivée.",
+      facts:["Créneau 17h–18h","≈ 1 h","Quartier Anfa"],
+      tips:["Tenue correcte appréciée (hôtel 5★).","Pas besoin de réserver pour un café, mais un appel évite une terrasse privatisée."] },
+    { id:"villa-boga", time:"20:30", title:"Dîner à la Villa Boga", cat:"Dîner", place:"Villa Boga",
+      addr:"7 bis rue de la Tempête, Aïn Diab, Casablanca", phone:"+212522797960", phoneUnsure:true, book:true,
+      desc:"Adresse mythique de Casablanca (depuis 1982), à deux pas de la Corniche, rouverte en 2024 après rénovation. Ambiance restaurant-bar, jardin et dîner tardif.",
+      facts:["Corniche · Aïn Diab","Réservation conseillée"],
+      tips:["Taxi depuis Anfa : 10–15 min.","Le numéro vient d'un ancien annuaire : vérifie-le sur Google Maps avant d'appeler."] }
+   ]},
+ { id:"jeu", name:"Jeudi", short:"Jeu", wd:4, city:"Casa → Rabat", sub:"Petit-déj, train, puis la Rabat historique",
+   items:[
+    { id:"bianca", time:"09:30", title:"Petit-déjeuner au Café Bianca", cat:"Petit-déj", place:"Café Bianca",
+      addr:"Aïn Diab, Casablanca", maps:"Café Bianca Casablanca",
+      desc:"Café-restaurant avec terrasse côté océan, près de la plage Lalla Meryem. Bon point de départ pour un dernier regard sur la Corniche.",
+      facts:["Créneau 9h–10h","Terrasse"],
+      tips:["Prévois de partir vers 11h30 pour être à la gare sans stress.","Garde tes bagages avec toi ou fais-les déposer à l'hôtel avant."] },
+    { id:"train-rabat", time:"12:30", title:"Train Casablanca → Rabat", cat:"Train", place:"Gare Casa-Voyageurs ou Casa-Port",
+      addr:"Gare Casa Voyageurs, Casablanca", oncf:true,
+      desc:"Train ONCF de 12h30. Vérifie la gare de départ sur ton billet : Casa-Voyageurs (grandes lignes, Al Boraq) ou Casa-Port (centre-ville).",
+      facts:["Départ 12h30","Arrivée ≈ 13h45–14h","Rabat-Ville ou Rabat-Agdal"],
+      tips:["Billets sur oncf-voyages.ma ou l'appli « ONCF Trains », ou au guichet.","Arrive 20 min avant : contrôle des billets à l'entrée des quais.","Rabat-Ville est la gare la plus centrale (médina, Oudayas)."] },
+    { id:"arrivee-rabat", time:"14:00", title:"Arrivée à Rabat · check-in", cat:"Hôtel", place:"Ton hôtel à Rabat", hotel:"rabat",
+      desc:"Dépose les bagages, souffle un peu. Les visites commencent vers 16h.",
+      facts:["Pause ≈ 2 h"],
+      tips:["Renseigne ton hôtel dans l'onglet « Infos utiles » pour avoir l'itinéraire en un tap.","Petits taxis bleus à Rabat : demande le compteur."] },
+    { id:"oudayas", time:"16:00", title:"Kasbah des Oudayas", cat:"Visite", place:"Kasbah des Oudayas",
+      addr:"Kasbah des Oudayas, Rabat",
+      desc:"Forteresse du XIIᵉ siècle au-dessus de l'embouchure du Bouregreg. Ruelles blanches et bleues, Bab Oudaya, jardin andalou et vue sur l'océan et Salé.",
+      facts:["Gratuit","≈ 1 h","Classé UNESCO"],
+      tips:["Entre par la porte monumentale Bab Oudaya.","Ignore les « guides » qui t'abordent : la kasbah se visite très bien seul.","Point de vue au bout de la kasbah, au-dessus de la plage."] },
+    { id:"marina", time:"17:15", title:"Balade à la Marina du Bouregreg", cat:"Balade", place:"Marina Bouregreg",
+      addr:"Marina Bouregreg, Salé",
+      desc:"Promenade le long du fleuve, entre Rabat et Salé. Vue sur le Grand Théâtre de Rabat (Zaha Hadid) et la tour Mohammed VI.",
+      facts:["Gratuit","≈ 45 min"],
+      tips:["Les barques traversent le fleuve depuis le pied des Oudayas : quelques dirhams, une jolie façon d'y aller."] },
+    { id:"chellah", time:"18:00", title:"Nécropole du Chellah", cat:"Visite", place:"Chellah",
+      addr:"Chellah, Rabat",
+      desc:"Ruines romaines et nécropole mérinide au milieu des jardins, avec ses cigognes. Rénové en 2023, parcours et musée sur place.",
+      facts:["≈ 70 MAD","≈ 1 h"],
+      alert:"Le Chellah ferme en fin d'après-midi (vers 17h30–18h selon la saison). Pour ne pas le rater, fais-le en premier à 16h, puis Oudayas et Marina au coucher du soleil." },
+    { id:"muskaan", time:"20:30", title:"Dîner au Muskaan", cat:"Dîner", place:"Muskaan", maps:"Muskaan restaurant Rabat", book:true,
+      desc:"Restaurant indien de Rabat, réputé pour ses currys, tandooris et naans. Ouvert tous les jours de 12h à 1h30.",
+      facts:["Cuisine indienne","12h–1h30"],
+      tips:["Numéro non vérifié : ouvre la fiche Google Maps et ajoute-le ici avec « Ajouter le numéro »."] }
+   ]},
+ { id:"ven", name:"Vendredi", short:"Ven", wd:5, city:"Rabat", sub:"Monuments royaux, pause et rooftop",
+   items:[
+    { id:"fresh-bio", time:"10:00", title:"Brunch chez Fresh and Bio", cat:"Brunch", place:"Fresh and Bio", maps:"Fresh and Bio Rabat",
+      desc:"Brunch healthy pour démarrer la journée : jus frais, bowls, œufs, pâtisseries.",
+      facts:["≈ 1 h"],
+      tips:["Le vendredi midi, beaucoup de commerces ralentissent pendant la prière : le brunch tôt est un bon choix."] },
+    { id:"hassan", time:"11:30", title:"Tour Hassan & Mausolée Mohammed V", cat:"Visite", place:"Tour Hassan",
+      addr:"Tour Hassan, Bd Mohamed Lyazidi, Rabat",
+      desc:"Minaret inachevé du XIIᵉ siècle et forêt de colonnes sur l'esplanade. En face, le mausolée de Mohammed V et Hassan II, gardé par la garde royale à cheval.",
+      facts:["Gratuit","≈ 1 h","Classé UNESCO"],
+      tips:["Tenue correcte : épaules et genoux couverts pour le mausolée.","Pas de photo des gardes de trop près, reste poli : ils sont en service."] },
+    { id:"maison-arabe", time:"13:30", title:"Déjeuner à La Maison Arabe", cat:"Déjeuner", place:"La Maison Arabe", maps:"La Maison Arabe restaurant Rabat", book:true,
+      desc:"Déjeuner de cuisine marocaine traditionnelle : tajines, pastilla, couscous (le vendredi, c'est le jour du couscous au Maroc).",
+      facts:["Cuisine marocaine"],
+      tips:["Adresse à confirmer sur Google Maps (à ne pas confondre avec La Maison Arabe de Marrakech)."] },
+    { id:"repos", time:"15:30", title:"Retour à l'hôtel · repos", cat:"Hôtel", place:"Ton hôtel à Rabat", hotel:"rabat",
+      desc:"Sieste, piscine ou valise : on recharge avant la soirée.",
+      facts:["≈ 3 h"] },
+    { id:"skybar", time:"20:30", title:"Dîner au Skybar", cat:"Rooftop", place:"Skybar Rabat", addr:"Avenue Prince Héritier, Salé", maps:"Skybar Rabat Salé", book:true,
+      desc:"Rooftop avec vue panoramique sur Rabat, côté Salé. Ouvert tous les jours de 20h à 2h.",
+      facts:["20h–2h","Vue panoramique"],
+      tips:["Réserve une table en bord de terrasse pour la vue.","Prends une veste : le vent souffle en hauteur le soir."] }
+   ]},
+ { id:"sam", name:"Samedi", short:"Sam", wd:6, city:"Rabat → Casa", sub:"Retour à Casablanca, Corniche et médina",
+   items:[
+    { id:"train-casa", time:"10:00", title:"Train Rabat → Casablanca", cat:"Train", place:"Gare Rabat-Ville ou Rabat-Agdal",
+      addr:"Gare Rabat Ville, Rabat", oncf:true,
+      desc:"Train ONCF de 10h vers Casablanca (≈ 1 h). Vérifie la gare d'arrivée sur ton billet.",
+      facts:["Départ 10h","Arrivée ≈ 11h"],
+      tips:["Libère la chambre avant de partir.","À Casablanca, petits taxis rouges : demande le compteur, ou utilise Careem / inDrive."] },
+    { id:"lilys", time:"14:00", title:"Déjeuner chez Lily's", cat:"Déjeuner", place:"Lily's",
+      addr:"92 Bd de la Corniche (El Hank), Casablanca", phone:"+212522361271", book:true,
+      desc:"Cuisine asiatique face à l'Atlantique : japonais, thaï, coréen, vietnamien, chinois. Sur la Corniche, à côté du Cabestan.",
+      facts:["Cuisine asiatique","Vue océan"],
+      tips:["Demande une table côté baie vitrée.","Le phare d'El Hank est juste à côté pour une photo."] },
+    { id:"rosi", time:"17:00", title:"Un verre au Rosi Rooftop", cat:"Rooftop", place:"Rosi Rooftop", maps:"Rosi rooftop Casablanca",
+      desc:"Apéro au coucher du soleil sur les toits de Casablanca.",
+      facts:["Créneau 17h","Coucher du soleil ≈ 18h"],
+      tips:["Adresse et numéro non vérifiés : ouvre la fiche Google Maps pour confirmer."] },
+    { id:"diner-sam", time:"20:30", title:"Dîner à Dar Dada", cat:"Dîner", place:"Dar Dada",
+      addr:"31 rue El Arsa, ancienne médina, Casablanca", phone:"+212661602602", book:true,
+      desc:"Belle table marocaine dans une maison de l'ancienne médina. Réservation par téléphone (WhatsApp possible, c'est un mobile).",
+      facts:["Cuisine marocaine","Lun–Sam midi & soir","Réservation par tél."],
+      tips:["En taxi, demande « Bab Marrakech » ou « ancienne médina, rue El Arsa »."],
+      alt:{ title:"Ou : Kamanja", place:"Kamanja", maps:"Kamanja restaurant Casablanca", text:"Alternative du programme. Coordonnées non trouvées en ligne : vérifie sur Google Maps et ajoute le numéro." } }
+   ]}
+];
+
+const CATS = { "Café":"Café", "Dîner":"Dîner", "Déjeuner":"Déjeuner", "Petit-déj":"Petit-déj", "Brunch":"Brunch", "Train":"Train", "Hôtel":"Hôtel", "Visite":"Visite", "Balade":"Balade", "Rooftop":"Rooftop", "Shopping":"Shopping", "Autre":"Autre" };
+
+/* ================== État (sauvegardé sur l'appareil) ================== */
+const KEY = "maroc-carnet-v1";
+let S = { done:{}, rating:{}, notes:{}, phones:{}, extras:[], guests:2, hotels:{ casa:"", rabat:"" }, tab:"programme", day:null };
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch(e) {}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} }
+
+if (!S.day) {
+  const wd = new Date().getDay();
+  S.day = (DAYS.find(d => d.wd === wd) || DAYS[0]).id;
+}
+
+/* ================== Utilitaires ================== */
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const cleanPhone = p => (p||"").replace(/[^\d+]/g,"").replace(/^00/,"+").replace(/^0(\d{9})$/,"+212$1");
+const prettyPhone = p => { const c = cleanPhone(p); const m = c.match(/^\+212(\d)(\d{2})(\d{2})(\d{2})(\d{2})$/); return m ? `+212 ${m[1]}${m[2]} ${m[3]} ${m[4]} ${m[5]}` : c; };
+const mapsSearch = q => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
+const mapsDir = q => "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(q);
+const ICON = {
+  phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>',
+  wa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.7-5A8.5 8.5 0 1 1 8 19.4z"/><path d="M9 10c.5 2 2 3.5 4 4l1.2-1.2 2 .8v1.6c-4 .5-8.2-3.7-7.7-7.7H10l.8 2z"/></svg>',
+  map:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+  ticket:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 0 0 4v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4a2 2 0 0 1 0-4V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z" transform="translate(0 1)"/><path d="M14 5v14" stroke-dasharray="2 2"/></svg>',
+  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+  mail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>',
+  star:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2.8 2.9 5.9 6.4.9-4.6 4.5 1.1 6.4L12 17.5l-5.8 3 1.1-6.4L2.7 9.6l6.4-.9z"/></svg>'
+};
+
+function allItems(){
+  const out = [];
+  DAYS.forEach(d => {
+    d.items.forEach(it => out.push({ ...it, day:d.id, dayName:d.name, extra:false }));
+    S.extras.filter(x => x.day === d.id).forEach(x => out.push({ ...x, dayName:d.name, extra:true }));
+  });
+  return out;
+}
+function dayItems(dayId){
+  const d = DAYS.find(x => x.id === dayId);
+  const base = d.items.map(it => ({ ...it, day:d.id, dayName:d.name, extra:false }));
+  const ex = S.extras.filter(x => x.day === dayId).map(x => ({ ...x, dayName:d.name, extra:true }));
+  return base.concat(ex).sort((a,b) => (a.time||"99").localeCompare(b.time||"99"));
+}
+function phoneOf(it){ return S.phones[it.id] || it.phone || ""; }
+function bookingText(it){
+  const n = S.guests;
+  return `Bonjour, je souhaiterais réserver une table pour ${n} personne${n>1?"s":""} ce ${it.dayName.toLowerCase()} vers ${it.time.replace(":","h")}. Merci beaucoup !`;
+}
+function toast(msg){
+  const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; t.setAttribute("role","status");
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2200);
+}
+async function copy(text, okMsg){
+  try { await navigator.clipboard.writeText(text); toast(okMsg || "Copié"); }
+  catch(e){ toast("Copie impossible : sélectionne le texte à la main"); }
+}
+
+/* ================== Rendu : Programme ================== */
+function stepHTML(it){
+  const done = !!S.done[it.id];
+  const ph = phoneOf(it);
+  const q = it.addr || it.maps || it.place;
+  const hotelQ = it.hotel ? (S.hotels[it.hotel] || "") : "";
+  const r = S.rating[it.id] || 0;
+  const callable = !it.oncf && !it.hotel && !["Visite","Balade"].includes(it.cat);
+  let actions = "";
+  if (ph) {
+    actions += `<a class="btn primary small" href="tel:${cleanPhone(ph)}">${ICON.phone}Appeler</a>`;
+    if (it.book) actions += `<a class="btn small" href="https://wa.me/${cleanPhone(ph).replace("+","")}?text=${encodeURIComponent(bookingText(it))}" target="_blank" rel="noopener">${ICON.wa}Réserver WhatsApp</a>`;
+  }
+  if (it.oncf) {
+    actions += `<a class="btn primary small" href="${ONCF_URL}" target="_blank" rel="noopener">${ICON.ticket}Acheter le billet</a>`;
+    actions += `<a class="btn small" href="tel:2255">${ICON.phone}ONCF 2255</a>`;
+  }
+  if (it.hotel) {
+    actions += hotelQ
+      ? `<a class="btn small" href="${mapsDir(hotelQ)}" target="_blank" rel="noopener">${ICON.map}Aller à l'hôtel</a>`
+      : `<button class="btn small" data-act="goto-infos">${ICON.map}Renseigner mon hôtel</button>`;
+  } else if (q) {
+    actions += `<a class="btn small" href="${mapsDir(q)}" target="_blank" rel="noopener">${ICON.map}Itinéraire</a>`;
+    if (!ph && callable) actions += `<a class="btn small" href="${mapsSearch(it.maps || q)}" target="_blank" rel="noopener">${ICON.phone}Trouver le n° / réserver</a>`;
+  }
+  if (it.email) actions += `<a class="btn small" href="mailto:${esc(it.email)}">${ICON.mail}E-mail</a>`;
+  if (it.book && ph) actions += `<button class="btn small ghost" data-act="copy-book" data-id="${esc(it.id)}">${ICON.copy}Copier le message</button>`;
+
+  let phoneLine = "";
+  if (callable) {
+    phoneLine = `<div class="phone-line">${ph
+      ? `<span class="num">${esc(prettyPhone(ph))}</span>${it.phoneUnsure && !S.phones[it.id] ? '<span class="unk">· à vérifier</span>' : ""}<button class="linkish" data-act="copy-phone" data-v="${esc(prettyPhone(ph))}">copier</button><button class="linkish" data-act="edit-phone" data-id="${esc(it.id)}">modifier</button>`
+      : `<span class="unk">Numéro non renseigné</span><button class="linkish" data-act="edit-phone" data-id="${esc(it.id)}">Ajouter le numéro</button>`}</div>
+      <div class="inline-edit" id="pe-${esc(it.id)}" hidden><input id="pein-${esc(it.id)}" type="tel" inputmode="tel" placeholder="+212 6…" value="${esc(S.phones[it.id]||"")}"><button class="btn small primary" data-act="save-phone" data-id="${esc(it.id)}">OK</button></div>`;
+  }
+
+  const alt = it.alt ? `<div class="alt"><h4>${esc(it.alt.title)}</h4><div class="where">${esc(it.alt.text)}</div>
+      <div class="actions"><a class="btn small" href="${mapsSearch(it.alt.maps)}" target="_blank" rel="noopener">${ICON.map}Voir ${esc(it.alt.place)} sur Maps</a></div></div>` : "";
+
+  return `<li class="step${done?" done":""}" data-id="${esc(it.id)}">
+    <div class="when">${esc((it.time||"").replace(":","h"))}</div>
+    <article class="card">
+      <div class="card-top">
+        <div class="t">
+          <span class="tag${it.extra?" extra":""}">${esc(it.extra ? "Ajouté · " + (it.cat||"Autre") : it.cat)}</span>
+          <h3>${esc(it.title)}</h3>
+          <div class="where">${esc(it.hotel ? (hotelQ || "Hôtel non renseigné") : (it.addr || it.place || ""))}</div>
+        </div>
+        <button class="check" data-act="toggle" data-id="${esc(it.id)}" aria-pressed="${done}" aria-label="${done?"Marquer comme à faire":"Marquer comme fait"}">${ICON.check}</button>
+      </div>
+      ${it.desc ? `<p class="desc">${esc(it.desc)}</p>` : ""}
+      ${it.facts && it.facts.length ? `<div class="facts">${it.facts.map(f => `<span class="fact">${esc(f)}</span>`).join("")}</div>` : ""}
+      ${it.alert ? `<div class="alert">${esc(it.alert)}</div>` : ""}
+      ${it.tips && it.tips.length ? `<ul class="tips">${it.tips.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+      ${phoneLine}
+      ${actions ? `<div class="actions">${actions}</div>` : ""}
+      ${alt}
+      <div class="review">
+        <div class="stars" role="radiogroup" aria-label="Ma note">${[1,2,3,4,5].map(n => `<button class="star${n<=r?" on":""}" data-act="rate" data-id="${esc(it.id)}" data-v="${n}" role="radio" aria-checked="${n===r}" aria-label="${n} étoile${n>1?"s":""}">${ICON.star}</button>`).join("")}</div>
+        <textarea class="note" id="note-${esc(it.id)}" data-id="${esc(it.id)}" rows="1" placeholder="Mon avis, ce que j'ai commandé, à refaire ?">${esc(S.notes[it.id]||"")}</textarea>
+        ${it.extra ? `<div><button class="del" data-act="del" data-id="${esc(it.id)}">Supprimer cette activité</button></div>` : ""}
+      </div>
+    </article>
+  </li>`;
+}
+
+function renderProgramme(){
+  const d = DAYS.find(x => x.id === S.day);
+  const items = dayItems(d.id);
+  const doneN = items.filter(i => S.done[i.id]).length;
+  return `
+  <div class="days"><div class="wrap" role="tablist" aria-label="Jours">
+    ${DAYS.map(x => {
+      const its = dayItems(x.id); const p = its.length ? Math.round(its.filter(i=>S.done[i.id]).length / its.length * 100) : 0;
+      const isToday = new Date().getDay() === x.wd;
+      return `<button class="day-btn" role="tab" aria-selected="${x.id===S.day}" data-act="day" data-id="${x.id}">
+        ${isToday ? '<span class="today-dot" title="Aujourd\'hui"></span>' : ""}
+        <span class="d">${x.short}</span><span class="c">${esc(x.city)}</span><span class="bar"><i style="width:${p}%"></i></span></button>`;
+    }).join("")}
+  </div></div>
+  <div class="wrap">
+    <div class="day-head">
+      <div><h2>${d.name} · ${esc(d.city)}</h2><div class="sub">${esc(d.sub)} · ${doneN}/${items.length} fait${doneN>1?"s":""}</div></div>
+      <button class="btn primary" data-act="add">${ICON.plus}Ajouter</button>
+    </div>
+    <ol class="timeline">${items.map(stepHTML).join("")}</ol>
+    <div class="add-row"><button class="btn" data-act="add">${ICON.plus}Ajouter quelque chose que j'ai fait ${d.name.toLowerCase()}</button></div>
+  </div>`;
+}
+
+/* ================== Rendu : Carnet ================== */
+function renderCarnet(){
+  const items = allItems();
+  const done = items.filter(i => S.done[i.id]);
+  const rated = items.filter(i => S.rating[i.id]);
+  const avg = rated.length ? (rated.reduce((s,i) => s + S.rating[i.id], 0) / rated.length) : 0;
+  const withSomething = items.filter(i => S.done[i.id] || S.rating[i.id] || (S.notes[i.id]||"").trim());
+  const best = [...rated].sort((a,b) => S.rating[b.id] - S.rating[a.id])[0];
+  return `<div class="wrap">
+    <h2 class="section-title">Mon carnet</h2>
+    <p class="lead">Tout ce que tu as fait, noté et commenté pendant le voyage.</p>
+    <div class="stats">
+      <div class="stat"><b>${done.length}/${items.length}</b><span>étapes faites</span></div>
+      <div class="stat"><b>${avg ? avg.toFixed(1).replace(".",",") : "–"}</b><span>note moyenne</span></div>
+      <div class="stat"><b>${S.extras.length}</b><span>ajouts perso</span></div>
+    </div>
+    ${best ? `<p class="lead" style="margin-top:14px">Coup de cœur pour l'instant : <strong>${esc(best.title)}</strong></p>` : ""}
+    ${withSomething.length ? `<ul class="log">${withSomething.map(i => `<li>
+        <div class="row"><strong>${esc(i.title)}</strong><span class="mini" aria-label="${S.rating[i.id]||0} sur 5">${"★".repeat(S.rating[i.id]||0)}${"☆".repeat(5-(S.rating[i.id]||0))}</span></div>
+        <div class="meta">${esc(i.dayName)} · ${esc((i.time||"").replace(":","h"))} · ${esc(i.extra ? "ajouté" : i.cat)}${S.done[i.id] ? " · fait" : ""}</div>
+        ${(S.notes[i.id]||"").trim() ? `<q>${esc(S.notes[i.id].trim())}</q>` : ""}
+      </li>`).join("")}</ul>
+      <div class="actions" style="margin-top:14px"><button class="btn" data-act="export">${ICON.copy}Copier mon carnet (texte)</button></div>`
+    : `<div class="empty" style="margin-top:14px">Rien encore. Coche une étape ou donne-lui des étoiles dans « Programme », et elle apparaîtra ici.</div>`}
+    <div class="add-row"><button class="btn primary" data-act="add">${ICON.plus}Ajouter une activité faite en plus</button></div>
+  </div>`;
+}
+
+/* ================== Rendu : Infos ================== */
+function renderInfos(){
+  return `<div class="wrap">
+    <h2 class="section-title">Infos utiles</h2>
+    <p class="lead">Le pratique, pour ne rien chercher sur place.</p>
+    <div class="info-grid">
+      <section class="info">
+        <h3>Mes hôtels</h3>
+        <div class="form">
+          <label class="field" for="hotel-casa">Hôtel à Casablanca (nom ou adresse)<input id="hotel-casa" data-hotel="casa" value="${esc(S.hotels.casa)}" placeholder="ex. Hôtel …, Casablanca"></label>
+          <label class="field" for="hotel-rabat">Hôtel à Rabat (nom ou adresse)<input id="hotel-rabat" data-hotel="rabat" value="${esc(S.hotels.rabat)}" placeholder="ex. Hôtel …, Rabat"></label>
+        </div>
+        <div class="actions">
+          ${S.hotels.casa ? `<a class="btn small" href="${mapsDir(S.hotels.casa)}" target="_blank" rel="noopener">${ICON.map}Hôtel Casa</a>` : ""}
+          ${S.hotels.rabat ? `<a class="btn small" href="${mapsDir(S.hotels.rabat)}" target="_blank" rel="noopener">${ICON.map}Hôtel Rabat</a>` : ""}
+        </div>
+      </section>
+
+      <section class="info">
+        <h3>Réservations</h3>
+        <p>Nombre de personnes utilisé dans les messages WhatsApp de réservation :</p>
+        <div class="stepper"><button data-act="guests" data-v="-1" aria-label="Moins">−</button><output id="guests">${S.guests}</output><button data-act="guests" data-v="1" aria-label="Plus">+</button></div>
+        <p style="margin-top:10px;color:var(--muted);font-size:13px">Les numéros en 06/07 sont des mobiles et répondent souvent sur WhatsApp. Les 05 sont des fixes : appelle plutôt.</p>
+      </section>
+
+      <section class="info">
+        <h3>Trains ONCF Casa ⇄ Rabat</h3>
+        <dl class="kv">
+          <dt>Durée</dt><dd>≈ 1 h (train classique), un peu moins en Al Boraq</dd>
+          <dt>Gares Casa</dt><dd>Casa-Voyageurs, Casa-Port</dd>
+          <dt>Gares Rabat</dt><dd>Rabat-Ville (centre), Rabat-Agdal</dd>
+          <dt>Billets</dt><dd>oncf-voyages.ma, appli « ONCF Trains », guichet</dd>
+          <dt>Centre d'appel</dt><dd>2255 (depuis un numéro marocain)</dd>
+        </dl>
+        <div class="actions"><a class="btn primary small" href="${ONCF_URL}" target="_blank" rel="noopener">${ICON.ticket}Horaires & billets</a></div>
+      </section>
+
+      <section class="info">
+        <h3>Se déplacer en ville</h3>
+        <p><strong>Petits taxis</strong> : rouges à Casablanca, bleus à Rabat. Demande « le compteur » (<em>l'compteur 3afak</em>) avant de partir. Tarif majoré de 50 % la nuit.</p>
+        <p><strong>Applis VTC</strong> : Careem et inDrive fonctionnent dans les deux villes.</p>
+        <p style="margin:0"><strong>Tram</strong> : pratique à Casablanca (Corniche, centre) et à Rabat (gare, Bouregreg, Salé).</p>
+      </section>
+
+      <section class="info">
+        <h3>Argent & météo</h3>
+        <dl class="kv">
+          <dt>Monnaie</dt><dd>Dirham (MAD), ≈ 10–11 MAD pour 1 €</dd>
+          <dt>Carte</dt><dd>Acceptée dans les restos ; garde du liquide pour taxis et cafés</dd>
+          <dt>Pourboire</dt><dd>≈ 10 % au restaurant, quelques dirhams au café</dd>
+          <dt>Fin octobre</dt><dd>≈ 20–24 °C le jour, frais le soir près de l'océan</dd>
+        </dl>
+      </section>
+
+      <section class="info">
+        <h3>Urgences</h3>
+        <dl class="kv">
+          <dt>Police</dt><dd><a href="tel:19">19</a></dd>
+          <dt>Ambulance / pompiers</dt><dd><a href="tel:15">15</a></dd>
+          <dt>Gendarmerie</dt><dd><a href="tel:177">177</a></dd>
+          <dt>Urgence (portable)</dt><dd><a href="tel:112">112</a></dd>
+        </dl>
+      </section>
+
+      <section class="info">
+        <h3>Quelques mots de darija</h3>
+        <div class="phrases">
+          <div class="phrase"><b>Salam</b><span>Bonjour</span></div>
+          <div class="phrase"><b>Choukran</b><span>Merci</span></div>
+          <div class="phrase"><b>La, choukran</b><span>Non merci (vendeurs, rabatteurs)</span></div>
+          <div class="phrase"><b>Bchhal ?</b><span>Combien ?</span></div>
+          <div class="phrase"><b>3afak</b><span>S'il te plaît</span></div>
+          <div class="phrase"><b>Bslama</b><span>Au revoir</span></div>
+        </div>
+      </section>
+
+      <section class="info">
+        <h3>Si tu as du temps en plus</h3>
+        <p><strong>Mosquée Hassan II</strong> (Casablanca) : l'une des rares mosquées visitables par les non-musulmans, visites guidées en journée.</p>
+        <p style="margin:0"><strong>Médina de Rabat</strong> : rue des Consuls pour l'artisanat, à deux pas des Oudayas.</p>
+        <div class="actions"><button class="btn small" data-act="add">${ICON.plus}L'ajouter à mon programme</button></div>
+      </section>
+
+      <section class="info">
+        <h3>Mes données</h3>
+        <p style="color:var(--muted);font-size:13px">Tes notes, étoiles et ajouts sont gardés sur ce téléphone, dans ce navigateur.</p>
+        <button class="btn small" data-act="reset" id="resetBtn">Tout effacer</button>
+      </section>
+    </div>
+  </div>`;
+}
+
+/* ================== Feuille « Ajouter » ================== */
+function openAdd(){
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,"0") + ":" + String(now.getMinutes()).padStart(2,"0");
+  const el = document.createElement("div");
+  el.className = "sheet"; el.id = "sheet";
+  el.innerHTML = `<div class="panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h3 id="sheetTitle">Ajouter une activité</h3>
+    <form class="form" id="addForm">
+      <label class="field" for="f-title">Qu'as-tu fait ?<input id="f-title" required placeholder="ex. Glace chez Amoud, shopping au Morocco Mall…"></label>
+      <div class="two">
+        <label class="field" for="f-day">Jour<select id="f-day">${DAYS.map(d => `<option value="${d.id}"${d.id===S.day?" selected":""}>${d.name}</option>`).join("")}</select></label>
+        <label class="field" for="f-time">Heure<input id="f-time" type="time" value="${hh}"></label>
+      </div>
+      <div class="two">
+        <label class="field" for="f-cat">Type<select id="f-cat">${Object.keys(CATS).map(c => `<option${c==="Autre"?" selected":""}>${c}</option>`).join("")}</select></label>
+        <label class="field" for="f-phone">Téléphone<input id="f-phone" type="tel" inputmode="tel" placeholder="facultatif"></label>
+      </div>
+      <label class="field" for="f-addr">Lieu / adresse<input id="f-addr" placeholder="facultatif, pour l'itinéraire"></label>
+      <label class="field" for="f-note">Mon avis<textarea id="f-note" rows="2" placeholder="facultatif"></textarea></label>
+      <div class="field">Ma note<div class="stars" id="f-stars">${[1,2,3,4,5].map(n => `<button type="button" class="star" data-v="${n}" aria-label="${n} étoile${n>1?"s":""}">${ICON.star}</button>`).join("")}</div></div>
+      <label class="field" style="display:flex;align-items:center;gap:8px;font-weight:600" for="f-done"><input id="f-done" type="checkbox" checked style="width:auto"> Déjà fait</label>
+      <div class="form-actions"><button type="button" class="btn ghost" id="f-cancel">Annuler</button><button type="submit" class="btn primary">Ajouter</button></div>
+    </form>
+  </div>`;
+  document.body.appendChild(el);
+  let stars = 0;
+  const paint = () => el.querySelectorAll("#f-stars .star").forEach(b => b.classList.toggle("on", +b.dataset.v <= stars));
+  el.querySelector("#f-stars").addEventListener("click", e => { const b = e.target.closest(".star"); if (!b) return; stars = +b.dataset.v === stars ? 0 : +b.dataset.v; paint(); });
+  const close = () => el.remove();
+  el.addEventListener("click", e => { if (e.target === el) close(); });
+  el.querySelector("#f-cancel").addEventListener("click", close);
+  el.querySelector("#addForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const title = $("#f-title").value.trim(); if (!title) return;
+    const id = "x" + Date.now().toString(36);
+    const addr = $("#f-addr").value.trim();
+    S.extras.push({ id, day:$("#f-day").value, time:$("#f-time").value || "12:00", title, cat:$("#f-cat").value, addr, place:addr, phone:$("#f-phone").value.trim() });
+    if (stars) S.rating[id] = stars;
+    const note = $("#f-note").value.trim(); if (note) S.notes[id] = note;
+    if ($("#f-done").checked) S.done[id] = true;
+    S.day = $("#f-day").value;
+    save(); close(); render(); toast("Activité ajoutée");
+  });
+  setTimeout(() => $("#f-title").focus(), 50);
+}
+
+/* ================== Rendu global & événements ================== */
+function renderRing(){
+  const items = allItems();
+  const p = items.length ? items.filter(i => S.done[i.id]).length / items.length : 0;
+  $("#ringArc").setAttribute("stroke-dashoffset", (169.6 * (1 - p)).toFixed(1));
+  $("#ringTxt").textContent = Math.round(p*100) + "%";
+}
+function render(){
+  const v = $("#view");
+  v.innerHTML = S.tab === "carnet" ? renderCarnet() : S.tab === "infos" ? renderInfos() : renderProgramme();
+  document.querySelectorAll(".nav button").forEach(b => { if (b.dataset.tab === S.tab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  renderRing();
+}
+
+document.querySelector(".nav").addEventListener("click", e => {
+  const b = e.target.closest("button[data-tab]"); if (!b) return;
+  S.tab = b.dataset.tab; save(); render(); window.scrollTo({ top:0 });
+});
+
+let resetArmed = false;
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const act = b.dataset.act, id = b.dataset.id;
+  if (act === "day") { S.day = id; save(); render(); return; }
+  if (act === "toggle") { S.done[id] ? delete S.done[id] : (S.done[id] = true); save(); render(); if (S.done[id]) toast("Fait ! Pense à le noter"); return; }
+  if (act === "rate") { const v = +b.dataset.v; S.rating[id] = S.rating[id] === v ? 0 : v; if (!S.rating[id]) delete S.rating[id]; else S.done[id] = true; save(); render(); return; }
+  if (act === "add") { openAdd(); return; }
+  if (act === "goto-infos") { S.tab = "infos"; save(); render(); window.scrollTo({ top:0 }); return; }
+  if (act === "edit-phone") { const box = document.getElementById("pe-" + id); box.hidden = !box.hidden; if (!box.hidden) document.getElementById("pein-" + id).focus(); return; }
+  if (act === "save-phone") { const v = document.getElementById("pein-" + id).value.trim(); if (v) S.phones[id] = v; else delete S.phones[id]; save(); render(); toast(v ? "Numéro enregistré" : "Numéro retiré"); return; }
+  if (act === "copy-phone") { copy(b.dataset.v, "Numéro copié"); return; }
+  if (act === "copy-book") { const it = allItems().find(i => i.id === id); copy(bookingText(it), "Message de réservation copié"); return; }
+  if (act === "del") {
+    if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirmer la suppression ?"; return; }
+    S.extras = S.extras.filter(x => x.id !== id); delete S.done[id]; delete S.rating[id]; delete S.notes[id];
+    save(); render(); toast("Activité supprimée"); return;
+  }
+  if (act === "guests") { S.guests = Math.max(1, Math.min(20, S.guests + (+b.dataset.v))); save(); $("#guests").textContent = S.guests; return; }
+  if (act === "export") {
+    const lines = ["Mon voyage Casablanca & Rabat", ""];
+    DAYS.forEach(d => {
+      const its = dayItems(d.id).filter(i => S.done[i.id] || S.rating[i.id] || (S.notes[i.id]||"").trim());
+      if (!its.length) return;
+      lines.push(d.name.toUpperCase());
+      its.forEach(i => lines.push(`- ${i.time.replace(":","h")} ${i.title}${S.rating[i.id] ? " " + "★".repeat(S.rating[i.id]) : ""}${(S.notes[i.id]||"").trim() ? " : " + S.notes[i.id].trim() : ""}`));
+      lines.push("");
+    });
+    copy(lines.join("\n"), "Carnet copié"); return;
+  }
+  if (act === "reset") {
+    if (!resetArmed) { resetArmed = true; b.textContent = "Confirmer : tout effacer"; return; }
+    S = { done:{}, rating:{}, notes:{}, phones:{}, extras:[], guests:2, hotels:{ casa:"", rabat:"" }, tab:"infos", day:S.day };
+    resetArmed = false; save(); render(); toast("Données effacées"); return;
+  }
+});
+
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.classList.contains("note")) { const v = t.value; if (v.trim()) S.notes[t.dataset.id] = v; else delete S.notes[t.dataset.id]; save(); }
+  if (t.dataset.hotel) { S.hotels[t.dataset.hotel] = t.value; save(); }
+});
+document.addEventListener("change", e => { if (e.target.dataset.hotel) render(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("#sheet")?.remove(); });
+
+render();
+</script>
+</body>
+</html>
