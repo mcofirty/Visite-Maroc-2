@@ -354,6 +354,13 @@ input,textarea,select,.num,q,.desc{-webkit-user-select:text;user-select:text}
 @keyframes shDown{to{transform:translateY(100%)}}
 .toast{animation:toastIn .26s cubic-bezier(.2,.9,.25,1) both}
 @keyframes toastIn{from{opacity:0;transform:translate(-50%,10px) scale(.96)}}
+/* Barre des jours : capsule de sélection qui glisse */
+.days .wrap{position:relative}
+.days-pill{position:absolute;top:8px;bottom:8px;left:0;border-radius:12px;background:var(--glass-accent);border:.5px solid rgba(255,255,255,.45);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 rgba(0,0,0,.08),0 8px 20px -8px rgba(45,75,224,.55);transition:transform .38s cubic-bezier(.3,1.2,.5,1),width .3s;pointer-events:none;z-index:0}
+.days.scrub .days-pill,.nav .in.scrub .pill,.days-pill.free,.nav .pill.free{transition:none}
+.day-btn{z-index:1;transition:color .2s,transform .15s}
+.day-btn[aria-selected="true"]{background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+.days,.nav .in{touch-action:pan-y}
 /* Indicateur d'onglet qui glisse */
 .nav .in{position:relative}
 .nav .pill{position:absolute;top:5px;bottom:5px;left:5px;width:calc((100% - 10px) / 3);border-radius:999px;background:var(--glass-tint);box-shadow:inset 0 1px 0 var(--glass-hi);transition:transform .38s cubic-bezier(.3,1.25,.5,1);pointer-events:none}
@@ -683,7 +690,7 @@ function renderDays(){
   const box = $("#days"); if (!box) return;
   box.hidden = S.tab !== "programme" || !!SHARED;
   if (box.hidden) return;
-  box.innerHTML = `<div class="days"><div class="wrap" role="tablist" aria-label="Jours">
+  box.innerHTML = `<div class="days"><div class="wrap" role="tablist" aria-label="Jours"><span class="days-pill" aria-hidden="true"></span>
     ${DAYS.map(x => {
       const its = dayItems(x.id); const p = its.length ? Math.round(its.filter(i=>S.done[i.id]).length / its.length * 100) : 0;
       const isToday = new Date().getDay() === x.wd;
@@ -692,7 +699,31 @@ function renderDays(){
         <span class="d">${x.short}</span><span class="c">${esc(x.city)}</span><span class="bar"><i style="width:${p}%"></i></span></button>`;
     }).join("")}
   </div></div>`;
+  placeDaysPill(DAYS.findIndex(x => x.id === S.day), { instant:true });
 }
+/* Position (en px) de la capsule sous le jour i ; i peut être fractionnaire pendant un glissement */
+function daysPillX(i){
+  const btns = [...document.querySelectorAll("#days .day-btn")]; if (!btns.length) return null;
+  const k = Math.max(0, Math.min(btns.length - 1, i)), a = Math.floor(k), b = Math.min(btns.length - 1, a + 1), f = k - a;
+  return { x: btns[a].offsetLeft + (btns[b].offsetLeft - btns[a].offsetLeft) * f, w: btns[a].offsetWidth };
+}
+function placeDaysPill(i, o = {}){
+  const pill = $("#days .days-pill"), pos = daysPillX(i); if (!pill || !pos) return;
+  pill.classList.toggle("free", !!o.instant || !!o.free);
+  pill.style.width = pos.w + "px"; pill.style.transform = `translate3d(${pos.x}px,0,0)`;
+  if (o.instant) requestAnimationFrame(() => requestAnimationFrame(() => pill.classList.remove("free")));
+}
+function markDay(i){ document.querySelectorAll("#days .day-btn").forEach((b, k) => b.setAttribute("aria-selected", k === Math.round(i))); }
+/* Capsule d'onglets : position fractionnaire 0..2 */
+function placeNavPill(i, o = {}){
+  const pill = $(".nav .pill"); if (!pill) return;
+  pill.classList.toggle("free", !!o.free);
+  pill.style.transform = `translate3d(${Math.max(0, Math.min(2, i)) * 100}%,0,0)`;
+}
+function markTab(i){ document.querySelectorAll(".nav button[data-tab]").forEach((b, k) => { if (k === Math.round(i)) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); }); }
+const TABS = ["programme","carnet","infos"];
+const tabIndexOf = r => (r === "carnet" ? 1 : r === "infos" ? 2 : 0);
+const dayIndexOf = r => DAYS.findIndex(x => x.id === r);
 
 function renderProgramme(){
   const d = DAYS.find(x => x.id === S.day);
@@ -1052,7 +1083,7 @@ function renderRoute(r){
 function updateNav(){
   const tabs = ["programme","carnet","infos"];
   document.querySelectorAll(".nav button").forEach(b => { if (b.dataset.tab === S.tab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
-  const pill = $(".nav .pill"); if (pill) pill.style.transform = `translateX(${tabs.indexOf(S.tab) * 100}%)`;
+  placeNavPill(tabs.indexOf(S.tab));
 }
 function render(){
   const v = $("#view");
@@ -1119,8 +1150,22 @@ function finish(route, peekInfo){
   updateNav(); renderRing();
   busy = false;
 }
+/* Les menus prennent tout de suite leur position finale (la page arrive pendant ce temps) */
+function previewMenus(route){
+  const di = dayIndexOf(route);
+  if (di >= 0 && !$("#days").hidden) { placeDaysPill(di); markDay(di); }
+  placeNavPill(tabIndexOf(route)); markTab(tabIndexOf(route));
+}
+/* Pendant un glissement de page, les menus suivent le doigt (p = 0..1 vers la page voisine) */
+function followMenus(fromR, toR, p){
+  const a = dayIndexOf(fromR), b = dayIndexOf(toR);
+  if (a >= 0 && b >= 0) placeDaysPill(a + (b - a) * p, { free:true });
+  const ta = tabIndexOf(fromR), tb = tabIndexOf(toR);
+  if (ta !== tb) placeNavPill(ta + (tb - ta) * p, { free:true });
+}
 function slide(route, peekInfo, side, fromX = 0, velocity = 0){
   const v = $("#view"); busy = true; v.classList.add("dragging");
+  previewMenus(route);
   const dist = Math.abs(-side * W() - fromX);
   const dur = Math.max(170, Math.min(340, velocity > 0 ? dist / Math.max(velocity, .9) : 300));
   v.style.transition = `transform ${dur}ms cubic-bezier(.22,.9,.24,1)`;
@@ -1136,6 +1181,7 @@ function go(route, opts = {}){
   const from = routeOf(); if (route === from && !opts.force) return;
   if (opts.instant || matchMedia("(prefers-reduced-motion: reduce)").matches) { commit(route); render(); SC.scrollTop = Math.min(SC.scrollTop, $(".hero").offsetHeight); return; }
   const side = ROUTES.indexOf(route) > ROUTES.indexOf(from) ? 1 : -1;
+  previewMenus(route);
   const info = makePeek(route, side);
   slide(route, info, side);
 }
@@ -1159,7 +1205,7 @@ function dismissSheet(el){
   const v = () => $("#view");
   const clearPeek = () => { info?.peek.remove(); info = null; side = 0; };
   SC.addEventListener("touchstart", e => {
-    if (SHARED || busy || e.touches.length !== 1 || e.target.closest("select,.sheet") || (e.target.matches("input,textarea") && e.target === document.activeElement)) { active=false; return; }
+    if (SHARED || busy || e.touches.length !== 1 || e.target.closest("select,.sheet,#days") || (e.target.matches("input,textarea") && e.target === document.activeElement)) { active=false; return; }
     active=true; axis=null; dx=0; x0=e.touches[0].clientX; y0=e.touches[0].clientY; samples=[[Date.now(), x0]];
   }, { passive:true });
   SC.addEventListener("touchmove", e => {
@@ -1174,6 +1220,7 @@ function dismissSheet(el){
     if (want !== side) { clearPeek(); if (has) { info = makePeek(ROUTES[j], want); side = want; } }
     dx = has ? mx : mx * .22 / (1 + Math.abs(mx) / 300);
     const el = v(); el.classList.add("dragging"); el.style.transition = "none"; el.style.transform = `translate3d(${dx}px,0,0)`;
+    if (has) followMenus(routeOf(), ROUTES[j], Math.min(1, Math.abs(dx) / W()));
   }, { passive:false });
   const end = () => {
     if (!active) return; active = false;
@@ -1185,10 +1232,60 @@ function dismissSheet(el){
     if (go_) { slide(ROUTES[j], info, side, dx, Math.abs(vel)); info = null; side = 0; return; }
     const el = v(); el.style.transition = "transform .32s cubic-bezier(.22,.9,.24,1)"; el.style.transform = "translate3d(0,0,0)";
     const keep = info; info = null; side = 0;
+    { const r = routeOf(), di = dayIndexOf(r); if (di >= 0 && !$("#days").hidden) placeDaysPill(di); placeNavPill(tabIndexOf(r)); }
     setTimeout(() => { keep?.peek.remove(); el.style.transition = ""; el.style.transform = ""; el.classList.remove("dragging"); }, 330);
   };
   SC.addEventListener("touchend", end);
   SC.addEventListener("touchcancel", end);
+})();
+
+document.addEventListener("click", e => { if (Date.now() < (window.__noClick || 0) && e.target.closest("#days,.nav")) { e.stopPropagation(); e.preventDefault(); } }, { capture:true });
+/* Glisser le doigt sur un menu : la capsule suit, la page change au relâchement */
+function scrub(getRow, count, indexAt, place, mark, current, pick){
+  let x0 = 0, y0 = 0, axis = null, moved = false, row = null, idx = 0;
+  const start = e => {
+    if (SHARED || busy || e.touches.length !== 1) return;
+    row = getRow(e.target); if (!row) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; axis = null; moved = false; idx = current();
+  };
+  const move = e => {
+    if (!row) return;
+    const x = e.touches[0].clientX, mx = x - x0, my = e.touches[0].clientY - y0;
+    if (!axis && (Math.abs(mx) > 6 || Math.abs(my) > 6)) axis = Math.abs(mx) >= Math.abs(my) ? "x" : "y";
+    if (axis !== "x") return;
+    e.preventDefault(); moved = true;
+    row.classList.add("scrub");
+    const f = indexAt(row, x);                       // position fractionnaire sous le doigt
+    place(f); const k = Math.round(Math.max(0, Math.min(count() - 1, f)));
+    if (k !== idx) { idx = k; mark(k); haptic(); }
+  };
+  const end = () => {
+    if (!row) return;
+    const r = row; row = null; r.classList.remove("scrub");
+    if (!moved) return;
+    window.__noClick = Date.now() + 450;          // le clic qui suit un glissement ne doit pas compter
+    place(idx);
+    if (idx !== current()) pick(idx); else mark(idx);
+  };
+  return { start, move, end };
+}
+(() => {
+  // Barre des jours
+  const dayAt = (row, x) => { const btns = [...row.querySelectorAll(".day-btn")], r0 = btns[0].getBoundingClientRect(), rN = btns[btns.length - 1].getBoundingClientRect(); const step = (rN.left - r0.left) / (btns.length - 1); return (x - r0.left - r0.width / 2) / step; };
+  const ds = scrub(t => t.closest("#days .days"), () => DAYS.length, dayAt, f => placeDaysPill(Math.max(0, Math.min(DAYS.length - 1, f)), { free:true }), markDay,
+    () => dayIndexOf(S.day), k => go(DAYS[k].id));
+  const box = $("#days");
+  box.addEventListener("touchstart", ds.start, { passive:true });
+  box.addEventListener("touchmove", ds.move, { passive:false });
+  box.addEventListener("touchend", ds.end); box.addEventListener("touchcancel", ds.end);
+  // Barre d'onglets
+  const nav = $(".nav .in");
+  const tabAt = (row, x) => { const r = row.getBoundingClientRect(); return (x - r.left - 5) / ((r.width - 10) / 3) - .5; };
+  const ns = scrub(t => t.closest(".nav .in"), () => 3, tabAt, f => placeNavPill(f, { free:true }), markTab,
+    () => TABS.indexOf(S.tab), k => go(k === 0 ? S.day : TABS[k]));
+  nav.addEventListener("touchstart", ns.start, { passive:true });
+  nav.addEventListener("touchmove", ns.move, { passive:false });
+  nav.addEventListener("touchend", ns.end); nav.addEventListener("touchcancel", ns.end);
 })();
 
 /* Bloquer le zoom (pincer, double-tap, Ctrl +/−, Ctrl + molette) */
