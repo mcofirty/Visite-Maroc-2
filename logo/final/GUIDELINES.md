@@ -10,7 +10,9 @@
 | `marhaba-horizontal.svg` | Logo horizontal : symbole + nom |
 | `marhaba-stacked.svg` | Logo empilé : symbole au-dessus du nom |
 | `marhaba-wordmark.svg` | Nom seul |
-| `marhaba-app-icon.svg` / `-1024.png` | Icône d'application |
+| `minimal/marhaba-app-icon.svg` / `-1024.png` | Icône d'application officielle : fond bleu uni, arche blanche unie, points safran, une seule ombre douce |
+| `minimal/marhaba-app-icon-flat.svg` | Même icône sans ombre (impression, broderie) |
+| `marhaba-app-icon.svg` | Ancienne icône plate sans ombre |
 | `export/` | Noir, blanc, une couleur, favicon, icônes web, manifeste |
 
 Le nom est dessiné en tracés (police Geist Bold, licence SIL OFL : usage logo autorisé). Aucun fichier ne dépend d'une police installée.

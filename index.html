@@ -74,7 +74,7 @@ a{color:inherit}
 .hero .wrap{padding-block:14px 4px}
 .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .brand{display:flex;align-items:center;gap:8px}
-.brand .logo{width:26px;height:30px;flex:none}
+.brand .logo{width:30px;height:30px;flex:none;border-radius:7px}
 .lg-arch{fill:var(--accent)}
 .lg-dot{fill:var(--saffron)}
 .brand b{font-size:17px;font-weight:600;letter-spacing:-.02em}
@@ -329,7 +329,7 @@ body.shared .nav,body.shared .hero{display:none}
 .mz-empty{text-align:center;color:var(--paper-muted);font-size:15px;margin:30px 0}
 .mz-foot{display:grid;justify-items:center;gap:12px;margin-top:34px;text-align:center}
 .mz-foot .brand-mini{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--paper-muted)}
-.mz-foot .brand-mini svg{width:14px;height:17px;color:var(--paper-blue)}
+.mz-foot .brand-mini svg{width:20px;height:20px;border-radius:5px}
 .mz-link{background:none;border:1px solid var(--paper-line);color:var(--paper-ink);border-radius:999px;padding:9px 18px;font-size:14px;font-weight:500}
 .mz-link:active{opacity:.6}
 
@@ -409,7 +409,7 @@ input,textarea,select,.num,q,.desc{-webkit-user-select:text;user-select:text}
     <div class="hero-card">
       <div class="hero-top">
         <div>
-          <div class="brand"><svg class="logo" viewBox="20 0 216 256" aria-hidden="true"><g id="symbol" transform="translate(0 14)"><path id="arch" class="lg-arch" d="M54 206V132A148 148 0 0 1 128 3.8A148 148 0 0 1 202 132V206H174V128A92 92 0 0 0 128 48.3A92 92 0 0 0 82 128V206Z"/><circle class="lg-dot" cx="68" cy="210" r="26"/><circle class="lg-dot" cx="188" cy="210" r="26"/></g></svg><div><b>marhaba</b><span>Carnet de voyage</span></div></div>
+          <div class="brand"><svg class="logo" viewBox="0 0 256 256" aria-hidden="true"><defs><filter id="hdrS" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#0B1550" flood-opacity=".38"/></filter></defs><rect width="256" height="256" rx="56" fill="#2D4BE0"/><g transform="translate(48.6 44.9) scale(0.62) translate(0 14)"><g filter="url(#hdrS)"><path d="M54 206V132A148 148 0 0 1 128 3.8A148 148 0 0 1 202 132V206H164V128A72 72 0 0 0 128 65.6A72 72 0 0 0 92 128V206Z" fill="#FFFFFF"/><circle cx="73" cy="210" r="30" fill="#E39A12"/><circle cx="183" cy="210" r="30" fill="#E39A12"/></g></g></svg><div><b>marhaba</b><span>Carnet de voyage</span></div></div>
           <h1>Casablanca <em>&amp;</em> Rabat</h1>
           <p>4 jours, 2 villes, tout le programme au même endroit.</p>
         </div>
@@ -1031,7 +1031,7 @@ const ORN = {
   star:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="miter"><path d="M12 2.5L17.6 19.7L2.96 9.09H21.04L6.4 19.7Z"/></svg>',
   penta:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="miter" stroke-miterlimit="10"><path d="M12 2.5L17.6 19.7L2.96 9.09H21.04L6.4 19.7Z"/></svg>',
   dot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="miter"><path d="M12 2.5L17.6 19.7L2.96 9.09H21.04L6.4 19.7Z"/></svg>',
-  logo:'<svg viewBox="0 0 20 26" fill="currentColor"><path d="M1 22V12C1 7 5 3 10 0c5 3 9 7 9 12v10h-5V12c0-3-2-5-4-7-2 2-4 4-4 7v10z"/><circle cx="3.5" cy="23.5" r="2.5" fill="#E39A12"/><circle cx="16.5" cy="23.5" r="2.5" fill="#E39A12"/></svg>'
+  logo:'<svg viewBox="0 0 256 256"><defs><filter id="ftS" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#0B1550" flood-opacity=".38"/></filter></defs><rect width="256" height="256" rx="56" fill="#2D4BE0"/><g transform="translate(48.6 44.9) scale(0.62) translate(0 14)"><g filter="url(#ftS)"><path d="M54 206V132A148 148 0 0 1 128 3.8A148 148 0 0 1 202 132V206H164V128A72 72 0 0 0 128 65.6A72 72 0 0 0 92 128V206Z" fill="#FFFFFF"/><circle cx="73" cy="210" r="30" fill="#E39A12"/><circle cx="183" cy="210" r="30" fill="#E39A12"/></g></g></svg>'
 };
 /* 10 étoiles du drapeau marocain (pentagramme tracé), demi-étoiles comprises */
 function pentaStars(v){
