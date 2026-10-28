@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 120" width="420" height="120" role="img" aria-label="Marhaba">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2D4BE0"/><stop offset=".55" stop-color="#A24FD6"/><stop offset="1" stop-color="#FF8A5C"/></linearGradient>
+    <linearGradient id="star" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFB13B"/><stop offset="1" stop-color="#FF6F91"/></linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect x="4" y="4" width="112" height="112" rx="30" fill="url(#bg)"/>
+  <rect x="4" y="4" width="112" height="112" rx="30" fill="url(#shine)"/>
+  <rect x="4.75" y="4.75" width="110.5" height="110.5" rx="29.25" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.5"/>
+  <path d="M33 102V60C33 43 45 30 60 16c15 14 27 27 27 44v42z" fill="#fff" fill-opacity=".9"/>
+  <g fill="url(#star)"><rect x="49" y="53" width="22" height="22"/><rect x="49" y="53" width="22" height="22" transform="rotate(45 60 64)"/></g>
+  <circle cx="60" cy="64" r="4" fill="#fff"/>
+  <text x="140" y="76" font-family="Geist, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif" font-size="58" font-weight="700" letter-spacing="-2.5" fill="#0E1630">marhaba</text>
+  <text x="143" y="102" font-family="Geist, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif" font-size="13" font-weight="600" letter-spacing="3.2" fill="#4D5878">BIENVENUE AU MAROC</text>
+</svg>
