@@ -147,10 +147,31 @@ a{color:inherit}
 .linkish{background:none;border:0;padding:0;color:var(--accent);font-weight:500;font-size:14px}
 .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 .review{margin-top:12px;padding-top:12px;border-top:.5px solid var(--sep);display:grid;gap:8px}
-.stars{display:flex;gap:2px}
-.star{background:none;border:0;padding:2px;color:var(--sep);line-height:0}
-.star svg{width:24px;height:24px}
-.star.on{color:var(--saffron)}
+.rate-row{display:flex;align-items:center;gap:10px;min-width:0}
+.review{grid-template-columns:minmax(0,1fr)}
+.stars{display:flex;flex:1;min-width:0;max-width:260px}
+.stars.sm{max-width:220px}
+.star{position:relative;flex:1;min-width:0;background:none;border:0;padding:0 1px;line-height:0;color:var(--sep);touch-action:manipulation}
+.star svg{width:100%;height:auto;max-width:24px;display:block}
+.star .fill{position:absolute;left:1px;top:0;width:calc(100% - 2px);max-width:24px;color:var(--saffron);pointer-events:none}
+.star .fill svg{width:100%;max-width:none}
+.stars.xs{flex:none;max-width:none}
+.stars.xs .star{flex:none;padding:0}.stars.xs .star .fill{left:0;width:12px}
+.stars.xs .star svg,.stars.xs .star .fill svg{width:12px;height:12px}
+.stars.ro .star{cursor:default}
+.score{flex:none;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.score small{color:var(--muted);font-weight:500}
+.avg-note{font-size:13px;color:var(--muted)}
+.dishes{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;background:var(--fill);border-radius:12px;padding:10px 12px}
+.dishes h4{margin:0;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.dish{display:grid;grid-template-columns:minmax(0,1fr);gap:3px;padding-bottom:8px;border-bottom:.5px solid var(--sep)}
+.dish:last-of-type{border-bottom:0;padding-bottom:0}
+.dish-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.dish-top b{font-weight:600;font-size:15px;min-width:0;overflow-wrap:anywhere}
+.dish-del{background:none;border:0;color:var(--muted);font-size:13px;padding:0 2px}
+.dish-add{display:flex;gap:6px}
+.dish-add input{flex:1;min-width:0;border:0;background:var(--surface);border-radius:10px;padding:8px 11px;font-size:16px}
+.log .dl{font-size:13px;color:var(--muted);margin:2px 0 0;padding:0;list-style:none}
 .note{width:100%;border:0;background:var(--fill);border-radius:10px;padding:9px 11px;font-size:16px;resize:vertical;min-height:40px}
 .inline-edit{display:flex;gap:6px;margin-top:8px}
 .inline-edit input{flex:1;min-width:0;border:0;background:var(--fill);border-radius:10px;padding:8px 11px;font-size:16px}
@@ -407,8 +428,10 @@ const CATS = { "Café":"Café", "Dîner":"Dîner", "Déjeuner":"Déjeuner", "Pet
 
 /* ================== État (sauvegardé sur l'appareil) ================== */
 const KEY = "maroc-carnet-v1";
-let S = { done:{}, rating:{}, notes:{}, phones:{}, extras:[], guests:2, hotels:{ casa:"", rabat:"" }, tab:"programme", day:null };
-try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch(e) {}
+let S = { v:2, done:{}, rating:{}, dishes:{}, notes:{}, phones:{}, extras:[], guests:2, hotels:{ casa:"", rabat:"" }, tab:"programme", day:null };
+try { const raw = localStorage.getItem(KEY); if (raw) { const old = JSON.parse(raw); S = Object.assign(S, old);
+  if (!old.v) { Object.keys(S.rating).forEach(k => S.rating[k] = Math.min(10, S.rating[k] * 2)); S.v = 2; } } } catch(e) {}
+S.dishes = S.dishes || {};
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} }
 
 if (!S.day) {
@@ -449,6 +472,23 @@ function dayItems(dayId){
   const ex = S.extras.filter(x => x.day === dayId).map(x => ({ ...x, dayName:d.name, extra:true }));
   return base.concat(ex).sort((a,b) => (a.time||"99").localeCompare(b.time||"99"));
 }
+/* ---- Notes sur 10, demi-étoiles ; restaurants = moyenne des plats ---- */
+const FOOD = ["Café","Dîner","Déjeuner","Petit-déj","Brunch","Rooftop"];
+const isFood = it => FOOD.includes(it.cat);
+const ratedDishes = id => (S.dishes[id] || []).filter(d => d.r > 0);
+function ratingOf(id){ const ds = ratedDishes(id); return ds.length ? ds.reduce((a,d) => a + d.r, 0) / ds.length : (S.rating[id] || 0); }
+const fmt = v => v ? String(Math.round(v * 10) / 10).replace(".", ",") : "–";
+function starsHTML(value, o = {}){
+  const shown = Math.round(value * 2) / 2;
+  const btn = n => {
+    const w = shown >= n ? 100 : shown >= n - .5 ? 50 : 0;
+    const attrs = o.ro ? 'tabindex="-1" aria-hidden="true"' : `data-act="rate" data-id="${esc(o.id)}"${o.dish ? ` data-dish="${esc(o.dish)}"` : ""} data-v="${n}" aria-label="${n} sur 10 (touche la moitié gauche pour ${n - .5})"`;
+    return `<button type="button" class="star" ${attrs}>${ICON.star}<span class="fill" style="clip-path:inset(0 ${100 - w}% 0 0)">${ICON.star}</span></button>`;
+  };
+  return `<div class="stars${o.size ? " " + o.size : ""}${o.ro ? " ro" : ""}" role="group" aria-label="${o.label || "Note"} : ${fmt(value)} sur 10">${Array.from({ length:10 }, (_, k) => btn(k + 1)).join("")}</div>`;
+}
+const scoreHTML = v => `<span class="score">${fmt(v)}<small>/10</small></span>`;
+
 function phoneOf(it){ return S.phones[it.id] || it.phone || ""; }
 function bookingText(it){
   const n = S.guests;
@@ -469,7 +509,6 @@ function stepHTML(it){
   const ph = phoneOf(it);
   const q = it.addr || it.maps || it.place;
   const hotelQ = it.hotel ? (S.hotels[it.hotel] || "") : "";
-  const r = S.rating[it.id] || 0;
   const callable = !it.oncf && !it.hotel && !["Visite","Balade"].includes(it.cat);
   let actions = "";
   if (ph) {
@@ -521,12 +560,30 @@ function stepHTML(it){
       ${actions ? `<div class="actions">${actions}</div>` : ""}
       ${alt}
       <div class="review">
-        <div class="stars" role="radiogroup" aria-label="Ma note">${[1,2,3,4,5].map(n => `<button class="star${n<=r?" on":""}" data-act="rate" data-id="${esc(it.id)}" data-v="${n}" role="radio" aria-checked="${n===r}" aria-label="${n} étoile${n>1?"s":""}">${ICON.star}</button>`).join("")}</div>
+        ${reviewHTML(it)}
         <textarea class="note" id="note-${esc(it.id)}" data-id="${esc(it.id)}" rows="1" placeholder="Mon avis, ce que j'ai commandé, à refaire ?">${esc(S.notes[it.id]||"")}</textarea>
         ${it.extra ? `<div><button class="del" data-act="del" data-id="${esc(it.id)}">Supprimer cette activité</button></div>` : ""}
       </div>
     </article>
   </li>`;
+}
+
+function reviewHTML(it){
+  const ds = S.dishes[it.id] || [], rd = ratedDishes(it.id), v = ratingOf(it.id);
+  const head = rd.length
+    ? `<div class="rate-row">${starsHTML(v, { ro:true, label:"Note de l'établissement" })}${scoreHTML(v)}</div><div class="avg-note">Moyenne de ${rd.length} plat${rd.length > 1 ? "s" : ""} noté${rd.length > 1 ? "s" : ""}</div>`
+    : `<div class="rate-row">${starsHTML(v, { id:it.id, label:"Ma note" })}${scoreHTML(v)}</div>`;
+  if (!isFood(it)) return head;
+  const list = ds.map(d => `<div class="dish">
+      <div class="dish-top"><b>${esc(d.name)}</b><button class="dish-del" data-act="dish-del" data-id="${esc(it.id)}" data-dish="${esc(d.id)}" aria-label="Retirer ${esc(d.name)}">Retirer</button></div>
+      <div class="rate-row">${starsHTML(d.r || 0, { id:it.id, dish:d.id, size:"sm", label:d.name })}${scoreHTML(d.r || 0)}</div>
+    </div>`).join("");
+  return `${head}
+    <div class="dishes">
+      <h4>Mes plats${ds.length ? ` · ${ds.length}` : ""}</h4>
+      ${list || `<div class="avg-note">Ajoute ce que tu as goûté et note chaque plat : la note du lieu sera leur moyenne.</div>`}
+      <div class="dish-add"><input id="dish-in-${esc(it.id)}" class="dish-in" data-id="${esc(it.id)}" placeholder="Ajouter un plat…" enterkeyhint="done" autocomplete="off"><button class="btn small primary" data-act="dish-add" data-id="${esc(it.id)}">${ICON.plus}Ajouter</button></div>
+    </div>`;
 }
 
 function renderProgramme(){
@@ -557,22 +614,24 @@ function renderProgramme(){
 function renderCarnet(){
   const items = allItems();
   const done = items.filter(i => S.done[i.id]);
-  const rated = items.filter(i => S.rating[i.id]);
-  const avg = rated.length ? (rated.reduce((s,i) => s + S.rating[i.id], 0) / rated.length) : 0;
-  const withSomething = items.filter(i => S.done[i.id] || S.rating[i.id] || (S.notes[i.id]||"").trim());
-  const best = [...rated].sort((a,b) => S.rating[b.id] - S.rating[a.id])[0];
+  const rated = items.filter(i => ratingOf(i.id));
+  const avg = rated.length ? (rated.reduce((s,i) => s + ratingOf(i.id), 0) / rated.length) : 0;
+  const withSomething = items.filter(i => S.done[i.id] || ratingOf(i.id) || (S.notes[i.id]||"").trim() || (S.dishes[i.id]||[]).length);
+  const best = [...rated].sort((a,b) => ratingOf(b.id) - ratingOf(a.id))[0];
   return `<div class="wrap">
     <h2 class="section-title">Mon carnet</h2>
     <p class="lead">Tout ce que tu as fait, noté et commenté pendant le voyage.</p>
     <div class="stats">
       <div class="stat"><b>${done.length}/${items.length}</b><span>étapes faites</span></div>
-      <div class="stat"><b>${avg ? avg.toFixed(1).replace(".",",") : "–"}</b><span>note moyenne</span></div>
+      <div class="stat"><b>${fmt(avg)}${avg ? '<small style="font-size:13px;color:var(--muted)">/10</small>' : ""}</b><span>note moyenne</span></div>
       <div class="stat"><b>${S.extras.length}</b><span>ajouts perso</span></div>
     </div>
     ${best ? `<p class="lead" style="margin-top:14px">Coup de cœur pour l'instant : <strong>${esc(best.title)}</strong></p>` : ""}
     ${withSomething.length ? `<ul class="log">${withSomething.map(i => `<li>
-        <div class="row"><strong>${esc(i.title)}</strong><span class="mini" aria-label="${S.rating[i.id]||0} sur 5">${"★".repeat(S.rating[i.id]||0)}${"☆".repeat(5-(S.rating[i.id]||0))}</span></div>
+        <div class="row"><strong>${esc(i.title)}</strong>${ratingOf(i.id) ? scoreHTML(ratingOf(i.id)) : ""}</div>
+        ${ratingOf(i.id) ? starsHTML(ratingOf(i.id), { ro:true, size:"xs" }) : ""}
         <div class="meta">${esc(i.dayName)} · ${esc((i.time||"").replace(":","h"))} · ${esc(i.extra ? "ajouté" : i.cat)}${S.done[i.id] ? " · fait" : ""}</div>
+        ${(S.dishes[i.id]||[]).length ? `<ul class="dl">${S.dishes[i.id].map(d => `<li>${esc(d.name)} · ${d.r ? fmt(d.r) + "/10" : "pas noté"}</li>`).join("")}</ul>` : ""}
         ${(S.notes[i.id]||"").trim() ? `<q>${esc(S.notes[i.id].trim())}</q>` : ""}
       </li>`).join("")}</ul>
       <div class="actions" style="margin-top:14px"><button class="btn" data-act="export">${ICON.copy}Copier mon carnet (texte)</button></div>`
@@ -693,15 +752,16 @@ function openAdd(){
       </div>
       <label class="field" for="f-addr">Lieu / adresse<input id="f-addr" placeholder="facultatif, pour l'itinéraire"></label>
       <label class="field" for="f-note">Mon avis<textarea id="f-note" rows="2" placeholder="facultatif"></textarea></label>
-      <div class="field">Ma note<div class="stars" id="f-stars">${[1,2,3,4,5].map(n => `<button type="button" class="star" data-v="${n}" aria-label="${n} étoile${n>1?"s":""}">${ICON.star}</button>`).join("")}</div></div>
+      <div class="field">Ma note<div class="rate-row" id="f-stars"></div></div>
       <label class="field" style="display:flex;align-items:center;gap:8px;font-weight:600" for="f-done"><input id="f-done" type="checkbox" checked style="width:auto"> Déjà fait</label>
       <div class="form-actions"><button type="button" class="btn ghost" id="f-cancel">Annuler</button><button type="submit" class="btn primary">Ajouter</button></div>
     </form>
   </div>`;
   document.body.appendChild(el);
   let stars = 0;
-  const paint = () => el.querySelectorAll("#f-stars .star").forEach(b => b.classList.toggle("on", +b.dataset.v <= stars));
-  el.querySelector("#f-stars").addEventListener("click", e => { const b = e.target.closest(".star"); if (!b) return; stars = +b.dataset.v === stars ? 0 : +b.dataset.v; paint(); });
+  const paint = () => { el.querySelector("#f-stars").innerHTML = starsHTML(stars, { id:"__new", label:"Ma note" }) + scoreHTML(stars); };
+  paint();
+  el.querySelector("#f-stars").addEventListener("click", e => { const b = e.target.closest(".star"); if (!b) return; e.stopPropagation(); const v = starValue(b, e); stars = stars === v ? 0 : v; paint(); });
   const close = () => el.remove();
   const panel = el.querySelector(".panel"); let sy=0, sdy=0, pull=false;
   panel.addEventListener("touchstart", e => { pull = panel.scrollTop <= 0 && !e.target.closest("input,textarea,select"); sy = e.touches[0].clientY; sdy = 0; }, { passive:true });
@@ -802,13 +862,38 @@ document.addEventListener("dblclick", e => e.preventDefault());
 document.addEventListener("wheel", e => { if (e.ctrlKey) e.preventDefault(); }, { passive:false });
 document.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && ["+","-","=","0"].includes(e.key)) e.preventDefault(); });
 
+/* Demi-étoile : la moitié gauche de l'étoile donne n − 0,5 */
+function starValue(b, e){
+  const n = +b.dataset.v;
+  if (!e || e.detail === 0) return n;
+  const r = b.getBoundingClientRect();
+  return (e.clientX - r.left) < r.width / 2 ? n - .5 : n;
+}
+function addDish(id){
+  const inp = document.getElementById("dish-in-" + id); const name = (inp?.value || "").trim();
+  if (!name) { inp?.focus(); return; }
+  (S.dishes[id] = S.dishes[id] || []).push({ id:"d" + Date.now().toString(36), name, r:0 });
+  S.done[id] = true; save(); render();
+  document.getElementById("dish-in-" + id)?.focus();
+  toast("Plat ajouté");
+}
+document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.classList?.contains("dish-in")) { e.preventDefault(); addDish(e.target.dataset.id); } });
+
 let resetArmed = false;
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const act = b.dataset.act, id = b.dataset.id;
   if (act === "day") { go(id); return; }
   if (act === "toggle") { S.done[id] ? delete S.done[id] : (S.done[id] = true); save(); render(); if (S.done[id]) toast("Fait ! Pense à le noter"); return; }
-  if (act === "rate") { const v = +b.dataset.v; S.rating[id] = S.rating[id] === v ? 0 : v; if (!S.rating[id]) delete S.rating[id]; else S.done[id] = true; save(); render(); return; }
+  if (act === "rate") {
+    if (id === "__new") return;
+    const v = starValue(b, e), dish = b.dataset.dish;
+    if (dish) { const d = (S.dishes[id] || []).find(x => x.id === dish); if (!d) return; d.r = d.r === v ? 0 : v; S.done[id] = true; }
+    else { S.rating[id] = S.rating[id] === v ? 0 : v; if (!S.rating[id]) delete S.rating[id]; else S.done[id] = true; }
+    save(); render(); return;
+  }
+  if (act === "dish-add") { addDish(id); return; }
+  if (act === "dish-del") { S.dishes[id] = (S.dishes[id] || []).filter(x => x.id !== b.dataset.dish); if (!S.dishes[id].length) delete S.dishes[id]; save(); render(); toast("Plat retiré"); return; }
   if (act === "add") { openAdd(); return; }
   if (act === "goto-infos") { go("infos"); return; }
   if (act === "edit-phone") { const box = document.getElementById("pe-" + id); box.hidden = !box.hidden; if (!box.hidden) document.getElementById("pein-" + id).focus(); return; }
@@ -817,24 +902,27 @@ document.addEventListener("click", e => {
   if (act === "copy-book") { const it = allItems().find(i => i.id === id); copy(bookingText(it), "Message de réservation copié"); return; }
   if (act === "del") {
     if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirmer la suppression ?"; return; }
-    S.extras = S.extras.filter(x => x.id !== id); delete S.done[id]; delete S.rating[id]; delete S.notes[id];
+    S.extras = S.extras.filter(x => x.id !== id); delete S.done[id]; delete S.rating[id]; delete S.notes[id]; delete S.dishes[id];
     save(); render(); toast("Activité supprimée"); return;
   }
   if (act === "guests") { S.guests = Math.max(1, Math.min(20, S.guests + (+b.dataset.v))); save(); $("#guests").textContent = S.guests; return; }
   if (act === "export") {
     const lines = ["Mon voyage Casablanca & Rabat", ""];
     DAYS.forEach(d => {
-      const its = dayItems(d.id).filter(i => S.done[i.id] || S.rating[i.id] || (S.notes[i.id]||"").trim());
+      const its = dayItems(d.id).filter(i => S.done[i.id] || ratingOf(i.id) || (S.notes[i.id]||"").trim() || (S.dishes[i.id]||[]).length);
       if (!its.length) return;
       lines.push(d.name.toUpperCase());
-      its.forEach(i => lines.push(`- ${i.time.replace(":","h")} ${i.title}${S.rating[i.id] ? " " + "★".repeat(S.rating[i.id]) : ""}${(S.notes[i.id]||"").trim() ? " : " + S.notes[i.id].trim() : ""}`));
+      its.forEach(i => {
+        lines.push(`- ${i.time.replace(":","h")} ${i.title}${ratingOf(i.id) ? " — " + fmt(ratingOf(i.id)) + "/10" : ""}${(S.notes[i.id]||"").trim() ? " : " + S.notes[i.id].trim() : ""}`);
+        (S.dishes[i.id] || []).forEach(dd => lines.push(`    · ${dd.name}${dd.r ? " — " + fmt(dd.r) + "/10" : ""}`));
+      });
       lines.push("");
     });
     copy(lines.join("\n"), "Carnet copié"); return;
   }
   if (act === "reset") {
     if (!resetArmed) { resetArmed = true; b.textContent = "Confirmer : tout effacer"; return; }
-    S = { done:{}, rating:{}, notes:{}, phones:{}, extras:[], guests:2, hotels:{ casa:"", rabat:"" }, tab:"infos", day:S.day };
+    S = { v:2, done:{}, rating:{}, dishes:{}, notes:{}, phones:{}, extras:[], guests:2, hotels:{ casa:"", rabat:"" }, tab:"infos", day:S.day };
     resetArmed = false; save(); render(); toast("Données effacées"); return;
   }
 });
