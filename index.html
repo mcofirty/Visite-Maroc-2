@@ -151,6 +151,7 @@ a{color:inherit}
 .review{grid-template-columns:minmax(0,1fr)}
 .stars{display:flex;flex:1;min-width:0;max-width:260px}
 .stars.sm{max-width:220px}
+.dishes .star{color:color-mix(in srgb,var(--muted) 32%,transparent)}
 .star{position:relative;flex:1;min-width:0;background:none;border:0;padding:0 1px;line-height:0;color:var(--sep);touch-action:manipulation}
 .star svg{width:100%;height:auto;max-width:24px;display:block}
 .star .fill{position:absolute;left:1px;top:0;width:calc(100% - 2px);max-width:24px;color:var(--saffron);pointer-events:none}
@@ -170,6 +171,9 @@ a{color:inherit}
 .dish-top b{font-weight:600;font-size:15px;min-width:0;overflow-wrap:anywhere}
 .dish-del{background:none;border:0;color:var(--muted);font-size:13px;padding:0 2px}
 .dish-add{display:flex;gap:6px}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--fill);border-radius:10px;padding:2px;gap:2px}
+.seg button{border:0;background:none;padding:8px;border-radius:8px;font-weight:600;font-size:15px;color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.14),0 0 0 .5px rgba(0,0,0,.04)}
 .dish-add input{flex:1;min-width:0;border:0;background:var(--surface);border-radius:10px;padding:8px 11px;font-size:16px}
 .log .dl{font-size:13px;color:var(--muted);margin:2px 0 0;padding:0;list-style:none}
 .log .dl li{display:block;padding:1px 0;border:0;background:none}
@@ -537,7 +541,7 @@ function dayItems(dayId){
 }
 /* ---- Notes sur 10, demi-étoiles ; restaurants = moyenne des plats ---- */
 const FOOD = ["Café","Dîner","Déjeuner","Petit-déj","Brunch","Rooftop"];
-const isFood = it => FOOD.includes(it.cat);
+const isFood = it => it.food === true || (it.food !== false && FOOD.includes(it.cat));
 const ratedDishes = id => (S.dishes[id] || []).filter(d => d.r > 0);
 function ratingOf(id){ const ds = ratedDishes(id); return ds.length ? ds.reduce((a,d) => a + d.r, 0) / ds.length : (S.rating[id] || 0); }
 const fmt = v => v ? String(Math.round(v * 10) / 10).replace(".", ",") : "–";
@@ -805,6 +809,8 @@ function openAdd(){
     <h3 id="sheetTitle">Ajouter une activité</h3>
     <form class="form" id="addForm">
       <label class="field" for="f-title">Qu'as-tu fait ?<input id="f-title" required placeholder="ex. Glace chez Amoud, shopping au Morocco Mall…"></label>
+      <div class="field">C'est un restaurant ?<div class="seg" role="group" aria-label="C'est un restaurant ?"><button type="button" id="f-food-yes" aria-pressed="false">Oui</button><button type="button" id="f-food-no" aria-pressed="true">Non</button></div></div>
+      <div id="f-dishes" hidden></div>
       <div class="two">
         <label class="field" for="f-day">Jour<select id="f-day">${DAYS.map(d => `<option value="${d.id}"${d.id===S.day?" selected":""}>${d.name}</option>`).join("")}</select></label>
         <label class="field" for="f-time">Heure<input id="f-time" type="time" value="${hh}"></label>
@@ -821,10 +827,45 @@ function openAdd(){
     </form>
   </div>`;
   document.body.appendChild(el);
-  let stars = 0;
-  const paint = () => { el.querySelector("#f-stars").innerHTML = starsHTML(stars, { id:"__new", label:"Ma note" }) + scoreHTML(stars); };
-  paint();
-  el.querySelector("#f-stars").addEventListener("click", e => { const b = e.target.closest(".star"); if (!b) return; e.stopPropagation(); const v = starValue(b, e); stars = stars === v ? 0 : v; paint(); });
+  let stars = 0, food = false, dishes = [];
+  const avgD = () => { const r = dishes.filter(d => d.r > 0); return r.length ? r.reduce((a, d) => a + d.r, 0) / r.length : 0; };
+  const paint = () => {
+    const rd = dishes.filter(d => d.r > 0).length;
+    el.querySelector("#f-stars").innerHTML = food && rd
+      ? starsHTML(avgD(), { ro:true, label:"Note du lieu" }) + scoreHTML(avgD()) + `<span class="avg-note" style="flex-basis:100%">Moyenne de ${rd} plat${rd > 1 ? "s" : ""} noté${rd > 1 ? "s" : ""}</span>`
+      : starsHTML(stars, { id:"__new", label:"Ma note" }) + scoreHTML(stars);
+  };
+  const paintDishes = () => {
+    const box = el.querySelector("#f-dishes"); box.hidden = !food;
+    box.innerHTML = `<div class="dishes"><h4>Mes plats${dishes.length ? " · " + dishes.length : ""}</h4>
+      ${dishes.map(d => `<div class="dish"><div class="dish-top"><b>${esc(d.name)}</b><button type="button" class="dish-del" data-fd="${d.id}">Retirer</button></div>
+        <div class="rate-row">${starsHTML(d.r, { id:"__new", dish:d.id, size:"sm", label:d.name })}${scoreHTML(d.r)}</div></div>`).join("")
+        || `<div class="avg-note">Ajoute ce que tu as goûté et note chaque plat : la note du lieu sera leur moyenne.</div>`}
+      <div class="dish-add"><input id="f-dish-in" placeholder="Ajouter un plat…" enterkeyhint="done" autocomplete="off"><button type="button" class="btn small primary" id="f-dish-add">${ICON.plus}Ajouter</button></div></div>`;
+    paint();
+  };
+  const setFood = v => {
+    food = v;
+    $("#f-food-yes").setAttribute("aria-pressed", v); $("#f-food-no").setAttribute("aria-pressed", !v);
+    const cat = $("#f-cat");
+    if (v && !FOOD.includes(cat.value)) cat.value = (($("#f-time").value || "12:00") < "16:00") ? "Déjeuner" : "Dîner";
+    if (!v && FOOD.includes(cat.value)) cat.value = "Autre";
+    paintDishes();
+  };
+  const addD = () => { const inp = $("#f-dish-in"); const n = (inp.value || "").trim(); if (!n) { inp.focus(); return; } dishes.push({ id:"d" + Date.now().toString(36) + dishes.length, name:n, r:0 }); paintDishes(); $("#f-dish-in").focus(); };
+  paintDishes();
+  $("#f-food-yes").addEventListener("click", () => setFood(true));
+  $("#f-food-no").addEventListener("click", () => setFood(false));
+  $("#f-cat").addEventListener("change", e => { const f = FOOD.includes(e.target.value); if (f !== food) { food = f; $("#f-food-yes").setAttribute("aria-pressed", f); $("#f-food-no").setAttribute("aria-pressed", !f); paintDishes(); } });
+  el.querySelector("#f-dishes").addEventListener("click", e => {
+    e.stopPropagation();
+    const st = e.target.closest(".star");
+    if (st) { const d = dishes.find(x => x.id === st.dataset.dish); if (d) { const v = starValue(st, e); d.r = d.r === v ? 0 : v; paintDishes(); } return; }
+    const del = e.target.closest("[data-fd]"); if (del) { dishes = dishes.filter(x => x.id !== del.dataset.fd); paintDishes(); return; }
+    if (e.target.closest("#f-dish-add")) addD();
+  });
+  el.querySelector("#f-dishes").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "f-dish-in") { e.preventDefault(); addD(); } });
+  el.querySelector("#f-stars").addEventListener("click", e => { const b = e.target.closest(".star"); if (!b) return; e.stopPropagation(); if (food && dishes.some(d => d.r > 0)) return; const v = starValue(b, e); stars = stars === v ? 0 : v; paint(); });
   const close = () => el.remove();
   const panel = el.querySelector(".panel"); let sy=0, sdy=0, pull=false;
   panel.addEventListener("touchstart", e => { pull = panel.scrollTop <= 0 && !e.target.closest("input,textarea,select"); sy = e.touches[0].clientY; sdy = 0; }, { passive:true });
@@ -837,8 +878,10 @@ function openAdd(){
     const title = $("#f-title").value.trim(); if (!title) return;
     const id = "x" + Date.now().toString(36);
     const addr = $("#f-addr").value.trim();
-    S.extras.push({ id, day:$("#f-day").value, time:$("#f-time").value || "12:00", title, cat:$("#f-cat").value, addr, place:addr, phone:$("#f-phone").value.trim() });
+    S.extras.push({ id, day:$("#f-day").value, time:$("#f-time").value || "12:00", title, cat:$("#f-cat").value, food, addr, place:addr, phone:$("#f-phone").value.trim() });
     if (stars) S.rating[id] = stars;
+    const pending = ($("#f-dish-in")?.value || "").trim(); if (food && pending) dishes.push({ id:"d" + Date.now().toString(36) + "p", name:pending, r:0 });
+    if (food && dishes.length) S.dishes[id] = dishes.map(d => ({ id:d.id, name:d.name, r:d.r || 0 }));
     const note = $("#f-note").value.trim(); if (note) S.notes[id] = note;
     if ($("#f-done").checked) S.done[id] = true;
     S.day = $("#f-day").value;
@@ -883,7 +926,7 @@ function sharePayload(){
     if ((S.dishes[i.id] || []).length) e.p = S.dishes[i.id].map(x => [x.name, x.r || 0]);
     if (Object.keys(e).length) d[i.id] = e;
   });
-  return { n:(S.name || "").trim(), t:Date.now(), x:S.extras.map(({ id, day, time, title, cat, addr }) => ({ id, day, time, title, cat, addr })), d };
+  return { n:(S.name || "").trim(), t:Date.now(), x:S.extras.map(({ id, day, time, title, cat, addr, food }) => ({ id, day, time, title, cat, addr, food })), d };
 }
 async function shareURL(){ return SHARE_BASE + "#partage=" + await packShare(sharePayload()); }
 
