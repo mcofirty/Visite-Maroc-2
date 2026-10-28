@@ -177,7 +177,7 @@ a{color:inherit}
 .dish-add input{flex:1;min-width:0;border:0;background:var(--surface);border-radius:10px;padding:8px 11px;font-size:16px}
 .log .dl{font-size:13px;color:var(--muted);margin:2px 0 0;padding:0;list-style:none}
 .log .dl li{display:block;padding:1px 0;border:0;background:none}
-.note{width:100%;border:0;background:var(--fill);border-radius:10px;padding:9px 11px;font-size:16px;resize:vertical;min-height:40px}
+.note{width:100%;border:0;background:var(--fill);border-radius:10px;padding:9px 11px;font-size:16px;resize:none;min-height:40px;overflow:hidden;field-sizing:content}
 .inline-edit{display:flex;gap:6px;margin-top:8px}
 .inline-edit input{flex:1;min-width:0;border:0;background:var(--fill);border-radius:10px;padding:8px 11px;font-size:16px}
 .del{background:none;border:0;color:var(--warn);font-weight:500;font-size:14px;padding:0}
@@ -237,7 +237,6 @@ a{color:inherit}
 
 /* ---------- Liquid glass : boutons et barres de navigation uniquement ---------- */
 .btn,.day-btn,.check,.nav .in,.nav button[aria-current="page"],.stepper{
-  -webkit-backdrop-filter:blur(18px) saturate(180%);backdrop-filter:blur(18px) saturate(180%);
   border:.5px solid var(--glass-edge);
   box-shadow:inset 0 1px 0 var(--glass-hi), inset 0 -1px 0 var(--glass-lo), var(--glass-shadow);
 }
@@ -337,13 +336,38 @@ input,textarea,select,.num,q,.desc{-webkit-user-select:text;user-select:text}
 .scroller{position:fixed;inset:0;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;scrollbar-width:none;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 40px)}
 .scroller::-webkit-scrollbar,.sheet .panel::-webkit-scrollbar{display:none;width:0;height:0}
 .sheet .panel{scrollbar-width:none;overscroll-behavior:contain}
-#view{will-change:transform}
-#view.in-next{animation:inNext .28s cubic-bezier(.2,.8,.2,1)}
-#view.in-prev{animation:inPrev .28s cubic-bezier(.2,.8,.2,1)}
-@keyframes inNext{from{transform:translateX(36px);opacity:.35}to{transform:none;opacity:1}}
-@keyframes inPrev{from{transform:translateX(-36px);opacity:.35}to{transform:none;opacity:1}}
+/* Pager : la page voisine est rendue à côté et glisse avec le doigt */
+#view{position:relative;min-height:60vh}
+#view.dragging{will-change:transform}
+.peek{position:absolute;left:0;width:100%;pointer-events:none}
+#days{position:sticky;top:env(safe-area-inset-top,0px);z-index:20}
+#days .days{position:static}
+#days[hidden]{display:none}
+/* Feuilles : entrée/sortie animées */
+.sheet{animation:shFade .22s ease-out both}
+.sheet .panel{animation:shUp .34s cubic-bezier(.2,.9,.25,1) both}
+.sheet.closing{animation:shFadeOut .22s ease-in both}
+.sheet.closing .panel{animation:shDown .24s cubic-bezier(.4,0,1,1) both}
+@keyframes shFade{from{background:rgba(0,0,0,0)}}
+@keyframes shFadeOut{to{background:rgba(0,0,0,0)}}
+@keyframes shUp{from{transform:translateY(100%)}}
+@keyframes shDown{to{transform:translateY(100%)}}
+.toast{animation:toastIn .26s cubic-bezier(.2,.9,.25,1) both}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,10px) scale(.96)}}
+/* Indicateur d'onglet qui glisse */
+.nav .in{position:relative}
+.nav .pill{position:absolute;top:5px;bottom:5px;left:5px;width:calc((100% - 10px) / 3);border-radius:999px;background:var(--glass-tint);box-shadow:inset 0 1px 0 var(--glass-hi);transition:transform .38s cubic-bezier(.3,1.25,.5,1);pointer-events:none}
+.nav button{position:relative;z-index:1}
+.nav button[aria-current="page"]{background:none!important;border-color:transparent!important;box-shadow:none!important}
+.nav button svg{transition:transform .2s}
+.nav button:active svg{transform:scale(.88)}
+.card{transition:border-color .2s}
+.check{transition:background-color .18s,border-color .18s,transform .15s}
+.check:active{transform:scale(.88)}
+.star:active svg{transform:scale(1.18)}
+.star svg{transition:transform .12s}
 .sheet .panel{transition:transform .2s}
-@media (prefers-reduced-motion:reduce){#view.in-next,#view.in-prev{animation:none}}
+@media (prefers-reduced-motion:reduce){.sheet,.sheet .panel,.toast{animation:none!important}.nav .pill{transition:none}}
 
 @media (max-width:420px){
   .timeline{--tc:40px;--tg:22px}
@@ -375,11 +399,12 @@ input,textarea,select,.num,q,.desc{-webkit-user-select:text;user-select:text}
   </div>
 </header>
 
+<div id="days"></div>
 <main id="view"></main>
 </div>
 
 <nav class="nav" aria-label="Navigation">
-  <div class="in">
+  <div class="in"><span class="pill" aria-hidden="true"></span>
     <button data-tab="programme" aria-current="page">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Programme</button>
     <button data-tab="carnet">
@@ -562,6 +587,7 @@ function bookingText(it){
   return `Bonjour, je souhaiterais réserver une table pour ${n} personne${n>1?"s":""} ce ${it.dayName.toLowerCase()} vers ${it.time.replace(":","h")}. Merci beaucoup !`;
 }
 function toast(msg){
+  document.querySelectorAll('.toast').forEach(x => x.remove());
   const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; t.setAttribute("role","status");
   document.body.appendChild(t); setTimeout(() => t.remove(), 2200);
 }
@@ -653,12 +679,11 @@ function reviewHTML(it){
     </div>`;
 }
 
-function renderProgramme(){
-  const d = DAYS.find(x => x.id === S.day);
-  const items = dayItems(d.id);
-  const doneN = items.filter(i => S.done[i.id]).length;
-  return `
-  <div class="days"><div class="wrap" role="tablist" aria-label="Jours">
+function renderDays(){
+  const box = $("#days"); if (!box) return;
+  box.hidden = S.tab !== "programme" || !!SHARED;
+  if (box.hidden) return;
+  box.innerHTML = `<div class="days"><div class="wrap" role="tablist" aria-label="Jours">
     ${DAYS.map(x => {
       const its = dayItems(x.id); const p = its.length ? Math.round(its.filter(i=>S.done[i.id]).length / its.length * 100) : 0;
       const isToday = new Date().getDay() === x.wd;
@@ -666,7 +691,14 @@ function renderProgramme(){
         ${isToday ? '<span class="today-dot" title="Aujourd\'hui"></span>' : ""}
         <span class="d">${x.short}</span><span class="c">${esc(x.city)}</span><span class="bar"><i style="width:${p}%"></i></span></button>`;
     }).join("")}
-  </div></div>
+  </div></div>`;
+}
+
+function renderProgramme(){
+  const d = DAYS.find(x => x.id === S.day);
+  const items = dayItems(d.id);
+  const doneN = items.filter(i => S.done[i.id]).length;
+  return `
   <div class="wrap">
     <div class="day-head">
       <div><h2>${d.name} · ${esc(d.city)}</h2><div class="sub">${esc(d.sub)} · ${doneN}/${items.length} fait${doneN>1?"s":""}</div></div>
@@ -866,7 +898,7 @@ function openAdd(){
   });
   el.querySelector("#f-dishes").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "f-dish-in") { e.preventDefault(); addD(); } });
   el.querySelector("#f-stars").addEventListener("click", e => { const b = e.target.closest(".star"); if (!b) return; e.stopPropagation(); if (food && dishes.some(d => d.r > 0)) return; const v = starValue(b, e); stars = stars === v ? 0 : v; paint(); });
-  const close = () => el.remove();
+  const close = () => dismissSheet(el);
   const panel = el.querySelector(".panel"); let sy=0, sdy=0, pull=false;
   panel.addEventListener("touchstart", e => { pull = panel.scrollTop <= 0 && !e.target.closest("input,textarea,select"); sy = e.touches[0].clientY; sdy = 0; }, { passive:true });
   panel.addEventListener("touchmove", e => { if (!pull) return; sdy = e.touches[0].clientY - sy; if (sdy > 0) { e.preventDefault(); panel.style.transition="none"; panel.style.transform = `translateY(${sdy}px)`; } }, { passive:false });
@@ -1007,71 +1039,156 @@ function openShare(){
     try { await navigator.share({ title:"Mon carnet marhaba", text:(S.name ? S.name + " t'envoie" : "Voici") + " son carnet de voyage Casablanca & Rabat", url }); }
     catch(e) { if (e.name !== "AbortError") { try { await navigator.clipboard.writeText(url); toast("Lien copié"); } catch(_) {} } }
   });
-  el.addEventListener("click", e => { if (e.target === el) el.remove(); });
+  el.addEventListener("click", e => { if (e.target === el) dismissSheet(el); });
 }
 
+function renderRoute(r){
+  const t = S.tab, d = S.day;
+  if (r === "carnet" || r === "infos") S.tab = r; else { S.tab = "programme"; S.day = r; }
+  const html = S.tab === "carnet" ? renderCarnet() : S.tab === "infos" ? renderInfos() : renderProgramme();
+  S.tab = t; S.day = d;
+  return html;
+}
+function updateNav(){
+  const tabs = ["programme","carnet","infos"];
+  document.querySelectorAll(".nav button").forEach(b => { if (b.dataset.tab === S.tab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  const pill = $(".nav .pill"); if (pill) pill.style.transform = `translateX(${tabs.indexOf(S.tab) * 100}%)`;
+}
 function render(){
   const v = $("#view");
-  if (SHARED) { v.innerHTML = renderShared(SHARED); renderRing(); return; }
-  v.innerHTML = S.tab === "carnet" ? renderCarnet() : S.tab === "infos" ? renderInfos() : renderProgramme();
-  document.querySelectorAll(".nav button").forEach(b => { if (b.dataset.tab === S.tab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  if (SHARED) { $("#days").hidden = true; v.innerHTML = renderShared(SHARED); renderRing(); return; }
+  renderDays();
+  v.innerHTML = renderRoute(routeOf());
+  updateNav();
   renderRing();
 }
+/* Mise à jour ciblée d'une carte (pas de re-rendu complet) */
+function refreshItem(id){
+  if (SHARED || S.tab !== "programme") { render(); return; }
+  const li = document.querySelector(`li.step[data-id="${CSS.escape(id)}"]`);
+  const it = dayItems(S.day).find(i => i.id === id);
+  if (!li || !it) { render(); return; }
+  const tmp = document.createElement("div"); tmp.innerHTML = stepHTML(it).trim();
+  li.replaceWith(tmp.firstElementChild);
+  const items = dayItems(S.day), doneN = items.filter(i => S.done[i.id]).length, d = DAYS.find(x => x.id === S.day);
+  const sub = $("#view .day-head .sub"); if (sub) sub.textContent = `${d.sub} · ${doneN}/${items.length} fait${doneN>1?"s":""}`;
+  renderDays(); renderRing();
+}
+const haptic = () => { try { navigator.vibrate && navigator.vibrate(8); } catch(e) {} };
 
 /* ================== Navigation façon app : routes, historique, glissements ================== */
 const SC = $("#scroller");
 const ROUTES = ["mer","jeu","ven","sam","carnet","infos"];
 const routeOf = () => S.tab === "programme" ? S.day : S.tab;
-function go(route, opts = {}){
-  if (!ROUTES.includes(route)) return;
-  const from = routeOf(); if (route === from && !opts.force) return;
-  const dir = ROUTES.indexOf(route) > ROUTES.indexOf(from) ? "next" : "prev";
-  const tabChange = (["carnet","infos"].includes(route) ? route : "programme") !== S.tab;
+const W = () => SC.clientWidth;
+let busy = false;
+function commit(route){
   if (route === "carnet" || route === "infos") S.tab = route; else { S.tab = "programme"; S.day = route; }
   save();
-  const keep = Math.min(SC.scrollTop, $(".hero").offsetHeight);
-  render();
-  SC.scrollTop = tabChange ? 0 : keep;
-  const v = $("#view"); v.classList.remove("in-next","in-prev"); void v.offsetWidth; v.classList.add("in-" + dir);
-  if (opts.push !== false) { try { history.pushState({ r:route }, "", "#" + route); } catch(e) {} }
+  try { history.replaceState({ r:route }, "", "#" + route); } catch(e) {}
 }
-window.addEventListener("popstate", () => { if (SHARED) return; const r = (location.hash || "").slice(1); closeSheet(); go(ROUTES.includes(r) ? r : ROUTES[0], { push:false }); });
+/* Prépare la page voisine, alignée sur ce que l'écran affichera après le changement */
+function makePeek(route, side){
+  const v = $("#view");
+  const curDays = !$("#days").hidden, nextDays = !(route === "carnet" || route === "infos");
+  const daysH = $("#days .days")?.offsetHeight || $("#days").dataset.h || 0;
+  if (curDays && daysH) $("#days").dataset.h = daysH;
+  const heroBottom = $(".hero").offsetHeight;
+  const viewTop = v.offsetTop, st = SC.scrollTop;
+  let newScroll = Math.min(st, heroBottom);
+  const newViewTop = heroBottom + (nextDays ? +($("#days").dataset.h || daysH || 0) : 0);
+  const peek = document.createElement("div");
+  peek.className = "peek"; peek.setAttribute("aria-hidden", "true");
+  peek.style.left = (side * 100) + "%";
+  peek.innerHTML = renderRoute(route);
+  v.appendChild(peek);
+  /* une page courte ne peut pas défiler aussi loin : on la place là où elle s'arrêtera vraiment */
+  const pb = parseFloat(getComputedStyle(SC).paddingBottom) || 0;
+  const maxS = Math.max(0, newViewTop + Math.max(peek.offsetHeight, innerHeight * .6) + pb - SC.clientHeight);
+  newScroll = Math.round(Math.min(newScroll, maxS));
+  peek.style.top = ((newViewTop - newScroll) - (viewTop - st)) + "px";
+  return { peek, newScroll };
+}
+function finish(route, peekInfo){
+  const v = $("#view");
+  v.style.transition = "none"; v.style.transform = ""; v.classList.remove("dragging");
+  commit(route);
+  renderDays();
+  v.innerHTML = peekInfo.peek.innerHTML;
+  SC.scrollTop = peekInfo.newScroll;
+  updateNav(); renderRing();
+  busy = false;
+}
+function slide(route, peekInfo, side, fromX = 0, velocity = 0){
+  const v = $("#view"); busy = true; v.classList.add("dragging");
+  const dist = Math.abs(-side * W() - fromX);
+  const dur = Math.max(170, Math.min(340, velocity > 0 ? dist / Math.max(velocity, .9) : 300));
+  v.style.transition = `transform ${dur}ms cubic-bezier(.22,.9,.24,1)`;
+  requestAnimationFrame(() => { v.style.transform = `translate3d(${-side * W()}px,0,0)`; });
+  let done = false;
+  const end = () => { if (done) return; done = true; finish(route, peekInfo); };
+  v.addEventListener("transitionend", end, { once:true });
+  setTimeout(end, dur + 80);
+  haptic();
+}
+function go(route, opts = {}){
+  if (!ROUTES.includes(route) || busy) return;
+  const from = routeOf(); if (route === from && !opts.force) return;
+  if (opts.instant || matchMedia("(prefers-reduced-motion: reduce)").matches) { commit(route); render(); SC.scrollTop = Math.min(SC.scrollTop, $(".hero").offsetHeight); return; }
+  const side = ROUTES.indexOf(route) > ROUTES.indexOf(from) ? 1 : -1;
+  const info = makePeek(route, side);
+  slide(route, info, side);
+}
+window.addEventListener("popstate", () => { if (SHARED) return; const r = (location.hash || "").slice(1); closeSheet(); if (ROUTES.includes(r)) go(r, { instant:true }); });
 document.querySelector(".nav").addEventListener("click", e => {
   const b = e.target.closest("button[data-tab]"); if (!b) return;
+  if (b.dataset.tab === S.tab) { SC.scrollTo({ top:0, behavior:"smooth" }); return; }
   go(b.dataset.tab === "programme" ? S.day : b.dataset.tab);
 });
-function closeSheet(){ $("#sheet")?.remove(); }
+function closeSheet(){ const el = $("#sheet"); if (el) dismissSheet(el); }
+function dismissSheet(el){
+  if (!el || el.classList.contains("closing")) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { el.remove(); return; }
+  el.classList.add("closing");
+  setTimeout(() => el.remove(), 240);
+}
 
-/* Glisser horizontalement : gauche = écran suivant, droite = écran précédent (Mer → Jeu → Ven → Sam → Carnet → Infos) */
+/* Glisser horizontalement : la page suit le doigt, la page voisine arrive en même temps */
 (() => {
-  let x0=0, y0=0, t0=0, axis=null, dx=0, active=false;
+  let x0=0, y0=0, axis=null, dx=0, active=false, side=0, info=null, samples=[];
   const v = () => $("#view");
+  const clearPeek = () => { info?.peek.remove(); info = null; side = 0; };
   SC.addEventListener("touchstart", e => {
-    if (SHARED) { active=false; return; }
-    if (e.touches.length !== 1 || e.target.closest("input,textarea,select,.sheet")) { active=false; return; }
-    active=true; axis=null; dx=0; x0=e.touches[0].clientX; y0=e.touches[0].clientY; t0=Date.now();
+    if (SHARED || busy || e.touches.length !== 1 || e.target.closest("select,.sheet") || (e.target.matches("input,textarea") && e.target === document.activeElement)) { active=false; return; }
+    active=true; axis=null; dx=0; x0=e.touches[0].clientX; y0=e.touches[0].clientY; samples=[[Date.now(), x0]];
   }, { passive:true });
   SC.addEventListener("touchmove", e => {
     if (!active) return;
-    const mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
-    if (!axis && (Math.abs(mx) > 10 || Math.abs(my) > 10)) axis = Math.abs(mx) > Math.abs(my) * 1.2 ? "x" : "y";
+    const x = e.touches[0].clientX, mx = x - x0, my = e.touches[0].clientY - y0;
+    if (!axis && (Math.abs(mx) > 8 || Math.abs(my) > 8)) axis = Math.abs(mx) > Math.abs(my) * 1.15 ? "x" : "y";
     if (axis !== "x") return;
     e.preventDefault();
-    const i = ROUTES.indexOf(routeOf()), edge = (mx > 0 && i === 0) || (mx < 0 && i === ROUTES.length - 1);
-    dx = mx;
-    v().style.transition = "none";
-    v().style.transform = `translateX(${mx * (edge ? .12 : .4)}px)`;
+    samples.push([Date.now(), x]); if (samples.length > 6) samples.shift();
+    const want = mx < 0 ? 1 : -1, i = ROUTES.indexOf(routeOf()), j = i + want;
+    const has = j >= 0 && j < ROUTES.length;
+    if (want !== side) { clearPeek(); if (has) { info = makePeek(ROUTES[j], want); side = want; } }
+    dx = has ? mx : mx * .22 / (1 + Math.abs(mx) / 300);
+    const el = v(); el.classList.add("dragging"); el.style.transition = "none"; el.style.transform = `translate3d(${dx}px,0,0)`;
   }, { passive:false });
-  SC.addEventListener("touchend", () => {
-    if (!active || axis !== "x") { active=false; return; }
-    active=false;
-    const speed = Math.abs(dx) / Math.max(1, Date.now() - t0);
-    const el = v(); el.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1)"; el.style.transform = "";
-    setTimeout(() => { el.style.transition = ""; }, 240);
-    if (Math.abs(dx) < 60 && speed < .45) return;
-    const i = ROUTES.indexOf(routeOf()), j = dx < 0 ? i + 1 : i - 1;
-    if (j >= 0 && j < ROUTES.length) { el.style.transition = ""; go(ROUTES[j]); }
-  });
+  const end = () => {
+    if (!active) return; active = false;
+    if (axis !== "x") return;
+    const [t1, x1] = samples[0], [t2, x2] = samples[samples.length - 1];
+    const vel = (x2 - x1) / Math.max(1, t2 - t1);            // px/ms, négatif = vers la gauche
+    const i = ROUTES.indexOf(routeOf()), j = i + side;
+    const go_ = info && side && (Math.abs(dx) > W() * .28 || (Math.sign(vel) === -side && Math.abs(vel) > .3));
+    if (go_) { slide(ROUTES[j], info, side, dx, Math.abs(vel)); info = null; side = 0; return; }
+    const el = v(); el.style.transition = "transform .32s cubic-bezier(.22,.9,.24,1)"; el.style.transform = "translate3d(0,0,0)";
+    const keep = info; info = null; side = 0;
+    setTimeout(() => { keep?.peek.remove(); el.style.transition = ""; el.style.transform = ""; el.classList.remove("dragging"); }, 330);
+  };
+  SC.addEventListener("touchend", end);
+  SC.addEventListener("touchcancel", end);
 })();
 
 /* Bloquer le zoom (pincer, double-tap, Ctrl +/−, Ctrl + molette) */
@@ -1094,8 +1211,8 @@ function addDish(id){
   const inp = document.getElementById("dish-in-" + id); const name = (inp?.value || "").trim();
   if (!name) { inp?.focus(); return; }
   (S.dishes[id] = S.dishes[id] || []).push({ id:"d" + Date.now().toString(36), name, r:0 });
-  S.done[id] = true; save(); render();
-  document.getElementById("dish-in-" + id)?.focus();
+  S.done[id] = true; save(); refreshItem(id);
+  document.getElementById("dish-in-" + id)?.focus({ preventScroll:true });
   toast("Plat ajouté");
 }
 document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.classList?.contains("dish-in")) { e.preventDefault(); addDish(e.target.dataset.id); } });
@@ -1105,16 +1222,16 @@ document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const act = b.dataset.act, id = b.dataset.id;
   if (act === "day") { go(id); return; }
-  if (act === "toggle") { S.done[id] ? delete S.done[id] : (S.done[id] = true); save(); render(); if (S.done[id]) toast("Fait ! Pense à le noter"); return; }
+  if (act === "toggle") { S.done[id] ? delete S.done[id] : (S.done[id] = true); save(); refreshItem(id); haptic(); if (S.done[id]) toast("Fait ! Pense à le noter"); return; }
   if (act === "rate") {
     if (id === "__new") return;
     const v = starValue(b, e), dish = b.dataset.dish;
     if (dish) { const d = (S.dishes[id] || []).find(x => x.id === dish); if (!d) return; d.r = d.r === v ? 0 : v; S.done[id] = true; }
     else { S.rating[id] = S.rating[id] === v ? 0 : v; if (!S.rating[id]) delete S.rating[id]; else S.done[id] = true; }
-    save(); render(); return;
+    save(); refreshItem(id); haptic(); return;
   }
   if (act === "dish-add") { addDish(id); return; }
-  if (act === "dish-del") { S.dishes[id] = (S.dishes[id] || []).filter(x => x.id !== b.dataset.dish); if (!S.dishes[id].length) delete S.dishes[id]; save(); render(); toast("Plat retiré"); return; }
+  if (act === "dish-del") { S.dishes[id] = (S.dishes[id] || []).filter(x => x.id !== b.dataset.dish); if (!S.dishes[id].length) delete S.dishes[id]; save(); refreshItem(id); toast("Plat retiré"); return; }
   if (act === "add") { openAdd(); return; }
   if (act === "goto-infos") { go("infos"); return; }
   if (act === "edit-phone") { const box = document.getElementById("pe-" + id); box.hidden = !box.hidden; if (!box.hidden) document.getElementById("pein-" + id).focus(); return; }
@@ -1152,11 +1269,12 @@ document.addEventListener("click", e => {
 
 document.addEventListener("input", e => {
   const t = e.target;
-  if (t.classList.contains("note")) { const v = t.value; if (v.trim()) S.notes[t.dataset.id] = v; else delete S.notes[t.dataset.id]; save(); }
+  if (t.tagName === "TEXTAREA" && !CSS.supports("field-sizing","content")) { t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }
+  if (t.classList.contains("note")) { const v = t.value; if (v.trim()) S.notes[t.dataset.id] = v; else delete S.notes[t.dataset.id]; clearTimeout(window.__nt); window.__nt = setTimeout(save, 350); }
   if (t.dataset.hotel) { S.hotels[t.dataset.hotel] = t.value; save(); }
 });
 document.addEventListener("change", e => { if (e.target.dataset.hotel) render(); });
-document.addEventListener("keydown", e => { if (e.key === "Escape") $("#sheet")?.remove(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
 
 (async () => {
   const h = location.hash || "";
