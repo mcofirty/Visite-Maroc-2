@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>marhaba</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
@@ -151,9 +151,9 @@ a{color:inherit}
 .star{background:none;border:0;padding:2px;color:var(--sep);line-height:0}
 .star svg{width:24px;height:24px}
 .star.on{color:var(--saffron)}
-.note{width:100%;border:0;background:var(--fill);border-radius:10px;padding:9px 11px;font-size:15px;resize:vertical;min-height:40px}
+.note{width:100%;border:0;background:var(--fill);border-radius:10px;padding:9px 11px;font-size:16px;resize:vertical;min-height:40px}
 .inline-edit{display:flex;gap:6px;margin-top:8px}
-.inline-edit input{flex:1;min-width:0;border:0;background:var(--fill);border-radius:10px;padding:8px 11px}
+.inline-edit input{flex:1;min-width:0;border:0;background:var(--fill);border-radius:10px;padding:8px 11px;font-size:16px}
 .del{background:none;border:0;color:var(--warn);font-weight:500;font-size:14px;padding:0}
 .add-row{display:flex;justify-content:center;margin:20px 0 6px}
 
@@ -242,6 +242,22 @@ body{padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 40px)}
   .nav .in,.days{background:var(--surface)}
 }
 
+/* ---------- Comportement d'app native ---------- */
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{position:fixed;inset:0;padding-bottom:0!important;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*{-webkit-tap-highlight-color:transparent}
+input,textarea,select,.num,q,.desc{-webkit-user-select:text;user-select:text}
+.scroller{position:fixed;inset:0;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;scrollbar-width:none;padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 40px)}
+.scroller::-webkit-scrollbar,.sheet .panel::-webkit-scrollbar{display:none;width:0;height:0}
+.sheet .panel{scrollbar-width:none;overscroll-behavior:contain}
+#view{will-change:transform}
+#view.in-next{animation:inNext .28s cubic-bezier(.2,.8,.2,1)}
+#view.in-prev{animation:inPrev .28s cubic-bezier(.2,.8,.2,1)}
+@keyframes inNext{from{transform:translateX(36px);opacity:.35}to{transform:none;opacity:1}}
+@keyframes inPrev{from{transform:translateX(-36px);opacity:.35}to{transform:none;opacity:1}}
+.sheet .panel{transition:transform .2s}
+@media (prefers-reduced-motion:reduce){#view.in-next,#view.in-prev{animation:none}}
+
 @media (max-width:420px){
   .timeline{--tc:40px;--tg:22px}
   .when{font-size:12px}
@@ -252,6 +268,7 @@ body{padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 40px)}
 </head>
 <body>
 
+<div class="scroller" id="scroller">
 <header class="hero">
   <div class="wrap">
     <div class="hero-card">
@@ -272,6 +289,7 @@ body{padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom,0px) + 40px)}
 </header>
 
 <main id="view"></main>
+</div>
 
 <nav class="nav" aria-label="Navigation">
   <div class="in">
@@ -685,6 +703,10 @@ function openAdd(){
   const paint = () => el.querySelectorAll("#f-stars .star").forEach(b => b.classList.toggle("on", +b.dataset.v <= stars));
   el.querySelector("#f-stars").addEventListener("click", e => { const b = e.target.closest(".star"); if (!b) return; stars = +b.dataset.v === stars ? 0 : +b.dataset.v; paint(); });
   const close = () => el.remove();
+  const panel = el.querySelector(".panel"); let sy=0, sdy=0, pull=false;
+  panel.addEventListener("touchstart", e => { pull = panel.scrollTop <= 0 && !e.target.closest("input,textarea,select"); sy = e.touches[0].clientY; sdy = 0; }, { passive:true });
+  panel.addEventListener("touchmove", e => { if (!pull) return; sdy = e.touches[0].clientY - sy; if (sdy > 0) { e.preventDefault(); panel.style.transition="none"; panel.style.transform = `translateY(${sdy}px)`; } }, { passive:false });
+  panel.addEventListener("touchend", () => { if (!pull) return; panel.style.transition=""; if (sdy > 90) close(); else panel.style.transform=""; });
   el.addEventListener("click", e => { if (e.target === el) close(); });
   el.querySelector("#f-cancel").addEventListener("click", close);
   el.querySelector("#addForm").addEventListener("submit", e => {
@@ -716,20 +738,79 @@ function render(){
   renderRing();
 }
 
+/* ================== Navigation façon app : routes, historique, glissements ================== */
+const SC = $("#scroller");
+const ROUTES = ["mer","jeu","ven","sam","carnet","infos"];
+const routeOf = () => S.tab === "programme" ? S.day : S.tab;
+function go(route, opts = {}){
+  if (!ROUTES.includes(route)) return;
+  const from = routeOf(); if (route === from && !opts.force) return;
+  const dir = ROUTES.indexOf(route) > ROUTES.indexOf(from) ? "next" : "prev";
+  const tabChange = (["carnet","infos"].includes(route) ? route : "programme") !== S.tab;
+  if (route === "carnet" || route === "infos") S.tab = route; else { S.tab = "programme"; S.day = route; }
+  save();
+  const keep = Math.min(SC.scrollTop, $(".hero").offsetHeight);
+  render();
+  SC.scrollTop = tabChange ? 0 : keep;
+  const v = $("#view"); v.classList.remove("in-next","in-prev"); void v.offsetWidth; v.classList.add("in-" + dir);
+  if (opts.push !== false) { try { history.pushState({ r:route }, "", "#" + route); } catch(e) {} }
+}
+window.addEventListener("popstate", () => { const r = (location.hash || "").slice(1); closeSheet(); go(ROUTES.includes(r) ? r : ROUTES[0], { push:false }); });
 document.querySelector(".nav").addEventListener("click", e => {
   const b = e.target.closest("button[data-tab]"); if (!b) return;
-  S.tab = b.dataset.tab; save(); render(); window.scrollTo({ top:0 });
+  go(b.dataset.tab === "programme" ? S.day : b.dataset.tab);
 });
+function closeSheet(){ $("#sheet")?.remove(); }
+
+/* Glisser horizontalement : gauche = écran suivant, droite = écran précédent (Mer → Jeu → Ven → Sam → Carnet → Infos) */
+(() => {
+  let x0=0, y0=0, t0=0, axis=null, dx=0, active=false;
+  const v = () => $("#view");
+  SC.addEventListener("touchstart", e => {
+    if (e.touches.length !== 1 || e.target.closest("input,textarea,select,.sheet")) { active=false; return; }
+    active=true; axis=null; dx=0; x0=e.touches[0].clientX; y0=e.touches[0].clientY; t0=Date.now();
+  }, { passive:true });
+  SC.addEventListener("touchmove", e => {
+    if (!active) return;
+    const mx = e.touches[0].clientX - x0, my = e.touches[0].clientY - y0;
+    if (!axis && (Math.abs(mx) > 10 || Math.abs(my) > 10)) axis = Math.abs(mx) > Math.abs(my) * 1.2 ? "x" : "y";
+    if (axis !== "x") return;
+    e.preventDefault();
+    const i = ROUTES.indexOf(routeOf()), edge = (mx > 0 && i === 0) || (mx < 0 && i === ROUTES.length - 1);
+    dx = mx;
+    v().style.transition = "none";
+    v().style.transform = `translateX(${mx * (edge ? .12 : .4)}px)`;
+  }, { passive:false });
+  SC.addEventListener("touchend", () => {
+    if (!active || axis !== "x") { active=false; return; }
+    active=false;
+    const speed = Math.abs(dx) / Math.max(1, Date.now() - t0);
+    const el = v(); el.style.transition = "transform .22s cubic-bezier(.2,.8,.2,1)"; el.style.transform = "";
+    setTimeout(() => { el.style.transition = ""; }, 240);
+    if (Math.abs(dx) < 60 && speed < .45) return;
+    const i = ROUTES.indexOf(routeOf()), j = dx < 0 ? i + 1 : i - 1;
+    if (j >= 0 && j < ROUTES.length) { el.style.transition = ""; go(ROUTES[j]); }
+  });
+})();
+
+/* Bloquer le zoom (pincer, double-tap, Ctrl +/−, Ctrl + molette) */
+["gesturestart","gesturechange","gestureend"].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive:false }));
+document.addEventListener("touchmove", e => { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) e.preventDefault(); }, { passive:false });
+let lastTap = 0;
+document.addEventListener("touchend", e => { const now = Date.now(); if (now - lastTap < 300 && !e.target.closest("input,textarea,select")) e.preventDefault(); lastTap = now; }, { passive:false });
+document.addEventListener("dblclick", e => e.preventDefault());
+document.addEventListener("wheel", e => { if (e.ctrlKey) e.preventDefault(); }, { passive:false });
+document.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && ["+","-","=","0"].includes(e.key)) e.preventDefault(); });
 
 let resetArmed = false;
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const act = b.dataset.act, id = b.dataset.id;
-  if (act === "day") { S.day = id; save(); render(); return; }
+  if (act === "day") { go(id); return; }
   if (act === "toggle") { S.done[id] ? delete S.done[id] : (S.done[id] = true); save(); render(); if (S.done[id]) toast("Fait ! Pense à le noter"); return; }
   if (act === "rate") { const v = +b.dataset.v; S.rating[id] = S.rating[id] === v ? 0 : v; if (!S.rating[id]) delete S.rating[id]; else S.done[id] = true; save(); render(); return; }
   if (act === "add") { openAdd(); return; }
-  if (act === "goto-infos") { S.tab = "infos"; save(); render(); window.scrollTo({ top:0 }); return; }
+  if (act === "goto-infos") { go("infos"); return; }
   if (act === "edit-phone") { const box = document.getElementById("pe-" + id); box.hidden = !box.hidden; if (!box.hidden) document.getElementById("pein-" + id).focus(); return; }
   if (act === "save-phone") { const v = document.getElementById("pein-" + id).value.trim(); if (v) S.phones[id] = v; else delete S.phones[id]; save(); render(); toast(v ? "Numéro enregistré" : "Numéro retiré"); return; }
   if (act === "copy-phone") { copy(b.dataset.v, "Numéro copié"); return; }
@@ -766,7 +847,9 @@ document.addEventListener("input", e => {
 document.addEventListener("change", e => { if (e.target.dataset.hotel) render(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") $("#sheet")?.remove(); });
 
+{ const r = (location.hash || "").slice(1); if (ROUTES.includes(r)) { if (r === "carnet" || r === "infos") S.tab = r; else { S.tab = "programme"; S.day = r; } } }
 render();
+try { history.replaceState({ r:routeOf() }, "", "#" + routeOf()); } catch(e) {}
 </script>
 </body>
 </html>
