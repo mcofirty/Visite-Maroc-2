@@ -345,6 +345,34 @@ body.shared .nav,body.shared .hero{display:none}
 .mz-sheet .btn.primary{background:var(--paper-blue);color:#fff;border-color:var(--paper-blue)}
 .mz-sheet .share-link{font-family:var(--font-mono);font-size:12px}
 
+/* ---------- Photos ---------- */
+.photos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ph{position:relative;width:100%;aspect-ratio:1;padding:0;border:0;border-radius:12px;overflow:hidden;background:var(--fill)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.photos.sm{grid-template-columns:repeat(6,minmax(0,44px))}
+.photos.sm .ph{border-radius:9px}
+.ph-add{width:100%;aspect-ratio:1;border-radius:12px;border:1.5px dashed color-mix(in srgb,var(--muted) 40%,transparent);display:grid;place-items:center;align-content:center;gap:2px;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer}
+.ph-add svg{width:20px;height:20px}
+.viewer{position:fixed;inset:0;z-index:80;background:#000;display:grid;grid-template-rows:auto 1fr auto;color:#fff;animation:shFade .2s ease-out both;touch-action:none}
+.viewer header,.viewer footer{display:flex;justify-content:space-between;align-items:center;padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.viewer footer{padding:10px max(16px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.viewer .stage{display:grid;place-items:center;overflow:hidden;min-height:0}
+.viewer .stage img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .25s cubic-bezier(.22,.9,.24,1)}
+.viewer button{background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:999px;padding:8px 14px;font-weight:600;font-size:14px}
+.viewer .count{font-size:14px;opacity:.8;font-variant-numeric:tabular-nums}
+.viewer .danger{color:#FF8A80}
+/* Photos du carnet : bords arrondis + liseré marocain (étoiles du drapeau sur bande verte, filet safran) */
+.mz-photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:2px}
+.mz-photos.n1{grid-template-columns:minmax(0,1fr)}
+.mz-photos.n3 .mz-ph:first-child{grid-column:1 / -1}
+.mz-ph{margin:0;border-radius:20px;padding:7px;background-color:var(--paper-green);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath d='M7 2.2L9.4 9.6L3.1 5H10.9L4.6 9.6Z' fill='none' stroke='%23F6F1E9' stroke-width='.9' stroke-linejoin='miter'/%3E%3Ccircle cx='0' cy='0' r='1.1' fill='%23E39A12'/%3E%3Ccircle cx='14' cy='0' r='1.1' fill='%23E39A12'/%3E%3Ccircle cx='0' cy='14' r='1.1' fill='%23E39A12'/%3E%3Ccircle cx='14' cy='14' r='1.1' fill='%23E39A12'/%3E%3C/svg%3E");
+  background-size:14px 14px;box-shadow:0 0 0 1.5px var(--paper-saffron),0 10px 24px -14px rgba(60,40,10,.45)}
+.mz-ph img{display:block;width:100%;aspect-ratio:4 / 3;object-fit:cover;border-radius:14px;border:2px solid var(--paper-card);background:var(--paper)}
+.mz-photos.n1 .mz-ph img{aspect-ratio:3 / 2}
+.mz-tools{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+body.export .mz-link,body.export .mz-tools{display:none}
+
 /* ---------- Comportement d'app native ---------- */
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;inset:0;padding-bottom:0!important;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -543,10 +571,10 @@ const CATS = { "Café":"Café", "Dîner":"Dîner", "Déjeuner":"Déjeuner", "Pet
 
 /* ================== État (sauvegardé sur l'appareil) ================== */
 const KEY = "maroc-carnet-v1";
-let S = { v:2, done:{}, rating:{}, dishes:{}, cadre:{}, notes:{}, phones:{}, extras:[], guests:2, hotels:{ casa:"", rabat:"" }, tab:"programme", day:null };
+let S = { v:2, done:{}, rating:{}, dishes:{}, cadre:{}, photos:{}, notes:{}, phones:{}, extras:[], guests:2, hotels:{ casa:"", rabat:"" }, tab:"programme", day:null };
 try { const raw = localStorage.getItem(KEY); if (raw) { const old = JSON.parse(raw); S = Object.assign(S, old);
   if (!old.v) { Object.keys(S.rating).forEach(k => S.rating[k] = Math.min(10, S.rating[k] * 2)); S.v = 2; } } } catch(e) {}
-S.dishes = S.dishes || {}; S.cadre = S.cadre || {};
+S.dishes = S.dishes || {}; S.cadre = S.cadre || {}; S.photos = S.photos || {};
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} }
 
 if (!S.day) {
@@ -566,6 +594,8 @@ const ICON = {
   wa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.7-5A8.5 8.5 0 1 1 8 19.4z"/><path d="M9 10c.5 2 2 3.5 4 4l1.2-1.2 2 .8v1.6c-4 .5-8.2-3.7-7.7-7.7H10l.8 2z"/></svg>',
   map:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
   ticket:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 0 0 4v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4a2 2 0 0 1 0-4V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z" transform="translate(0 1)"/><path d="M14 5v14" stroke-dasharray="2 2"/></svg>',
+  camera:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>',
+  eye:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
   copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
   mail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
   share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>',
@@ -607,6 +637,83 @@ function starsHTML(value, o = {}){
   return `<div class="stars${o.size ? " " + o.size : ""}${o.ro ? " ro" : ""}" role="group" aria-label="${o.label || "Note"} : ${fmt(value)} sur 10">${Array.from({ length:10 }, (_, k) => btn(k + 1)).join("")}</div>`;
 }
 const scoreHTML = v => `<span class="score">${fmt(v)}<small>/10</small></span>`;
+
+/* ---- Photos : fichiers compressés dans IndexedDB, liste des identifiants dans S.photos ---- */
+const PDB = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open("marhaba-photos", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("photos", { keyPath:"id" });
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  }));
+  const run = async (mode, fn) => { const db = await open(); return new Promise((res, rej) => { const t = db.transaction("photos", mode); const q = fn(t.objectStore("photos")); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); }); };
+  return { put:rec => run("readwrite", st => st.put(rec)), get:id => run("readonly", st => st.get(id)), del:id => run("readwrite", st => st.delete(id)), clear:() => run("readwrite", st => st.clear()) };
+})();
+const PURL = {};
+async function photoURL(id){ if (PURL[id]) return PURL[id]; try { const r = await PDB.get(id); return r ? (PURL[id] = URL.createObjectURL(r.blob)) : null; } catch(e) { return null; } }
+async function shrink(src, max, q){
+  let img;
+  try { img = await createImageBitmap(src, { imageOrientation:"from-image" }); }
+  catch(e) { img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(src); }); }
+  const k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement("canvas");
+  c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return new Promise(r => c.toBlob(r, "image/jpeg", q));
+}
+const blobToData = b => new Promise((res, rej) => { const f = new FileReader(); f.onload = () => res(f.result); f.onerror = rej; f.readAsDataURL(b); });
+async function addPhotos(id, files){
+  const list = [...files].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|heic|heif|webp)$/i.test(f.name));
+  if (!list.length) return;
+  toast(list.length > 1 ? `Ajout de ${list.length} photos…` : "Ajout de la photo…");
+  let ok = 0;
+  for (const f of list) {
+    try {
+      const blob = await shrink(f, 1600, .82);
+      const pid = "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      await PDB.put({ id:pid, place:id, blob, t:Date.now() });
+      (S.photos[id] = S.photos[id] || []).push(pid); ok++;
+    } catch(e) {}
+  }
+  if (ok) S.done[id] = true;
+  save(); refreshItem(id);
+  toast(ok ? (ok > 1 ? `${ok} photos ajoutées` : "Photo ajoutée") : "Impossible de lire cette photo");
+}
+async function removePhoto(id, pid){
+  S.photos[id] = (S.photos[id] || []).filter(x => x !== pid); if (!S.photos[id].length) delete S.photos[id];
+  save(); try { await PDB.del(pid); } catch(e) {}
+  if (PURL[pid]) { URL.revokeObjectURL(PURL[pid]); delete PURL[pid]; }
+}
+/* Remplit les <img data-ph> dès qu'ils apparaissent */
+function hydratePhotos(){
+  document.querySelectorAll("img[data-ph]:not([src])").forEach(async img => { const u = await photoURL(img.dataset.ph); if (u) img.src = u; else img.closest(".ph")?.remove(); });
+}
+new MutationObserver(() => { cancelAnimationFrame(window.__hp); window.__hp = requestAnimationFrame(hydratePhotos); }).observe(document.documentElement, { childList:true, subtree:true });
+function photosHTML(id, o = {}){
+  const ids = S.photos[id] || [];
+  if (o.small) return ids.length ? `<div class="photos sm">${ids.map(pid => `<span class="ph"><img data-ph="${esc(pid)}" alt=""></span>`).join("")}</div>` : "";
+  return `<div class="photos">${ids.map(pid => `<button class="ph" data-act="ph-view" data-id="${esc(id)}" data-pid="${esc(pid)}" aria-label="Voir la photo"><img data-ph="${esc(pid)}" alt=""></button>`).join("")}
+    <label class="ph-add" aria-label="Ajouter des photos"><input type="file" accept="image/*" multiple hidden data-ph-input="${esc(id)}">${ICON.camera}<span>Photo</span></label></div>`;
+}
+/* Visionneuse plein écran : glisser pour passer d'une photo à l'autre */
+function openViewer(id, pid){
+  let ids = S.photos[id] || [], i = Math.max(0, ids.indexOf(pid)), armed = false;
+  const el = document.createElement("div"); el.className = "viewer"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Photo");
+  el.innerHTML = `<header><span class="count"></span><button data-v="close">Fermer</button></header><div class="stage"><img alt=""></div><footer><span></span><button class="danger" data-v="del">Supprimer</button></footer>`;
+  document.body.appendChild(el);
+  const img = el.querySelector("img"), count = el.querySelector(".count"), del = el.querySelector('[data-v="del"]');
+  const show = async () => { ids = S.photos[id] || []; if (!ids.length) { el.remove(); return; } i = Math.min(i, ids.length - 1); count.textContent = `${i + 1} / ${ids.length}`; img.style.transform = ""; img.src = await photoURL(ids[i]) || ""; armed = false; del.textContent = "Supprimer"; };
+  show();
+  el.addEventListener("click", async e => {
+    const b = e.target.closest("button");
+    if (!b) { if (e.target === el || e.target.classList.contains("stage")) el.remove(); return; }
+    if (b.dataset.v === "close") el.remove();
+    if (b.dataset.v === "del") { if (!armed) { armed = true; del.textContent = "Confirmer la suppression"; return; } await removePhoto(id, ids[i]); refreshItem(id); toast("Photo supprimée"); show(); }
+  });
+  let x0 = 0, dx = 0;
+  el.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; dx = 0; img.style.transition = "none"; }, { passive:true });
+  el.addEventListener("touchmove", e => { dx = e.touches[0].clientX - x0; img.style.transform = `translateX(${dx}px)`; e.preventDefault(); }, { passive:false });
+  el.addEventListener("touchend", () => { img.style.transition = ""; if (Math.abs(dx) > 60) { const j = i + (dx < 0 ? 1 : -1); if (j >= 0 && j < ids.length) { i = j; show(); return; } } img.style.transform = ""; });
+}
 
 function phoneOf(it){ return S.phones[it.id] || it.phone || ""; }
 function bookingText(it){
@@ -681,6 +788,7 @@ function stepHTML(it){
       ${alt}
       <div class="review">
         ${reviewHTML(it)}
+        ${photosHTML(it.id)}
         <textarea class="note" id="note-${esc(it.id)}" data-id="${esc(it.id)}" rows="1" placeholder="Mon avis, ce que j'ai commandé, à refaire ?">${esc(S.notes[it.id]||"")}</textarea>
         ${it.extra ? `<div><button class="del" data-act="del" data-id="${esc(it.id)}">Supprimer cette activité</button></div>` : ""}
       </div>
@@ -772,7 +880,7 @@ function renderCarnet(){
   const done = items.filter(i => S.done[i.id]);
   const rated = items.filter(i => ratingOf(i.id));
   const avg = rated.length ? (rated.reduce((s,i) => s + ratingOf(i.id), 0) / rated.length) : 0;
-  const withSomething = items.filter(i => S.done[i.id] || ratingOf(i.id) || (S.notes[i.id]||"").trim() || (S.dishes[i.id]||[]).length);
+  const withSomething = items.filter(i => S.done[i.id] || ratingOf(i.id) || (S.notes[i.id]||"").trim() || (S.dishes[i.id]||[]).length || (S.photos[i.id]||[]).length);
   const best = [...rated].sort((a,b) => ratingOf(b.id) - ratingOf(a.id))[0];
   return `<div class="wrap">
     <h2 class="section-title">Mon carnet</h2>
@@ -787,11 +895,12 @@ function renderCarnet(){
         <div class="row"><strong>${esc(i.title)}</strong>${ratingOf(i.id) ? scoreHTML(ratingOf(i.id)) : ""}</div>
         ${ratingOf(i.id) ? starsHTML(ratingOf(i.id), { ro:true, size:"xs" }) : ""}
         <div class="meta">${esc(i.dayName)} · ${esc((i.time||"").replace(":","h"))} · ${esc(i.extra ? "ajouté" : i.cat)}${S.done[i.id] ? " · fait" : ""}</div>
+        ${photosHTML(i.id, { small:true })}
         ${S.cadre[i.id] ? `<ul class="dl"><li>Cadre · ${fmt(S.cadre[i.id])}/10</li></ul>` : ""}
         ${(S.dishes[i.id]||[]).length ? `<ul class="dl">${S.dishes[i.id].map(d => `<li>${esc(d.name)} · ${d.r ? fmt(d.r) + "/10" : "pas noté"}</li>`).join("")}</ul>` : ""}
         ${(S.notes[i.id]||"").trim() ? `<q>${esc(S.notes[i.id].trim())}</q>` : ""}
       </li>`).join("")}</ul>
-      <div class="actions" style="margin-top:14px"><button class="btn primary" data-act="share">${ICON.share}Partager mon carnet</button><button class="btn" data-act="export">${ICON.copy}Copier en texte</button></div>`
+      <div class="actions" style="margin-top:14px"><button class="btn primary" data-act="share">${ICON.share}Partager mon carnet</button><button class="btn" data-act="preview">${ICON.eye}Voir mon carnet de voyage</button><button class="btn" data-act="export">${ICON.copy}Copier en texte</button></div>`
     : `<div class="empty" style="margin-top:14px">Rien encore. Coche une étape ou donne-lui des étoiles dans « Programme », et elle apparaîtra ici.</div>`}
     <div class="add-row"><button class="btn primary" data-act="add">${ICON.plus}Ajouter une activité faite en plus</button></div>
   </div>`;
@@ -1011,10 +1120,11 @@ async function unpackShare(str){
   if (str[0] === "z") return JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).text());
   return JSON.parse(new TextDecoder().decode(bytes));
 }
-function sharePayload(){
+function sharePayload(withPhotos){
   const d = {};
   allItems().forEach(i => {
     const e = {};
+    if (withPhotos && (S.photos[i.id] || []).length) e.k = 1;
     if (S.done[i.id]) e.o = 1;
     if (S.rating[i.id]) e.r = S.rating[i.id];
     if ((S.notes[i.id] || "").trim()) e.m = S.notes[i.id].trim();
@@ -1023,6 +1133,44 @@ function sharePayload(){
     if (Object.keys(e).length) d[i.id] = e;
   });
   return { n:(S.name || "").trim(), t:Date.now(), x:S.extras.map(({ id, day, time, title, cat, addr, food }) => ({ id, day, time, title, cat, addr, food })), d };
+}
+/* Version avec photos : pour l'aperçu (adresses locales) ou le fichier (images intégrées) */
+async function payloadWithPhotos(mode){
+  const D = sharePayload(true); D.ph = {};
+  for (const [id, ids] of Object.entries(S.photos)) {
+    if (!D.d[id]) continue;
+    const out = [];
+    for (const pid of ids) {
+      try {
+        if (mode === "preview") { const u = await photoURL(pid); if (u) out.push(u); }
+        else { const r = await PDB.get(pid); if (r) out.push(await blobToData(await shrink(r.blob, 1200, .76))); }
+      } catch(e) {}
+    }
+    if (out.length) D.ph[id] = out;
+  }
+  return D;
+}
+async function openPreview(){
+  const D = await payloadWithPhotos("preview"); D.preview = true;
+  closeSheet(); SHARED = D; document.body.classList.add("shared"); render(); SC.scrollTop = 0;
+}
+async function exportFile(){
+  toast("Préparation du carnet avec les photos…");
+  const D = await payloadWithPhotos("file");
+  const css = document.querySelector("style").textContent + `
+html,body{height:auto!important;overflow:visible!important;position:static!important;touch-action:auto!important;-webkit-user-select:text!important;user-select:text!important}
+body::before{display:none!important}`;
+  const fonts = document.querySelector('link[href*="fonts.googleapis"]')?.outerHTML || "";
+  const title = D.n ? `Le carnet de ${D.n}` : "Carnet de voyage";
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} · marhaba</title>${fonts}<style>${css}</style></head><body class="shared export">${renderShared(D)}</body></html>`;
+  const name = `carnet-marhaba${D.n ? "-" + D.n.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") : ""}.html`;
+  const file = new File([html], name, { type:"text/html" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files:[file] })) { await navigator.share({ files:[file], title }); return; }
+  } catch(e) { if (e.name === "AbortError") return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast("Carnet enregistré dans tes fichiers");
 }
 async function shareURL(){ return SHARE_BASE + "#partage=" + await packShare(sharePayload()); }
 
@@ -1042,7 +1190,7 @@ function pentaStars(v){
   }).join("")}</span>`;
 }
 function renderShared(D){
-  const foot = `<div class="mz-foot"><button class="mz-link" data-act="leave-shared">Ouvrir mon propre carnet</button><span class="brand-mini">${ORN.logo}marhaba</span></div>`;
+  const foot = `<div class="mz-foot">${D.preview ? `<div class="mz-tools"><button class="mz-link" data-act="export-file">Envoyer ce carnet avec les photos</button></div>` : ""}<button class="mz-link" data-act="leave-shared">${D.preview ? "Revenir à l'app" : "Ouvrir mon propre carnet"}</button><span class="brand-mini">${ORN.logo}marhaba</span></div>`;
   if (D.error) return `<div class="wrap"><div class="mz"><div class="mz-head"><span class="mz-arch">${ORN.arch}</span><span class="mz-kicker">Carnet partagé</span><h1>Lien illisible</h1><p class="mz-sub">Ce lien est incomplet ou abîmé. Demande à la personne de te le renvoyer.</p></div>${foot}</div></div>`;
   const cuis = e => { const ds = (e.p || []).filter(x => x[1] > 0); return ds.length ? ds.reduce((a, x) => a + x[1], 0) / ds.length : 0; };
   const score = e => combine(cuis(e), e.c || 0, e.r);
@@ -1063,6 +1211,7 @@ function renderShared(D){
       ${v ? `<div class="mz-rate">${pentaStars(v)}<span class="mz-num">${fmt(v)}<small>/10</small></span></div>` : ""}
       ${e.c || cuis(e) ? `<div class="mz-split">${cuis(e) ? `<span>Cuisine <b class="pn">${ORN.penta}${fmt(cuis(e))}</b></span>` : ""}${e.c ? `<span>Cadre <b class="pn">${ORN.penta}${fmt(e.c)}</b></span>` : ""}</div>` : ""}
       ${(e.p || []).length ? `<ul class="mz-menu">${e.p.map(x => `<li><span>${esc(x[0])}</span><i></i><b class="pn">${x[1] ? ORN.penta + fmt(x[1]) : "—"}</b></li>`).join("")}</ul>` : ""}
+      ${(D.ph && D.ph[i.id] || []).length ? `<div class="mz-photos n${Math.min(3, D.ph[i.id].length)}">${D.ph[i.id].map(src => `<figure class="mz-ph"><img src="${esc(src)}" alt="Photo · ${esc(i.title)}" loading="lazy"></figure>`).join("")}</div>` : ""}
       ${e.m ? `<p class="mz-note">${esc(e.m)}</p>` : ""}
     </li>`; };
   return `<div class="wrap"><article class="mz">
@@ -1101,7 +1250,13 @@ function openShare(){
         <button type="button" class="btn" id="sh-copy" style="flex:1">${ICON.copy}Copier le lien</button>
         ${navigator.share ? `<button type="button" class="btn primary" id="sh-send" style="flex:1">${ICON.share}Envoyer…</button>` : ""}
       </div>
-      <p class="avg-note" style="margin:0">Tes notes ne sont stockées nulle part en ligne : tout est dans le lien.</p>
+      <p class="avg-note" style="margin:0">Tes notes ne sont stockées nulle part en ligne : tout est dans le lien. Le lien ne contient pas les photos.</p>
+      <div style="height:1px;background:var(--paper-line);margin:6px 0"></div>
+      <p class="lead" style="margin:0"><strong style="color:var(--paper-ink)">Avec les photos</strong> : envoie ton carnet en fichier (WhatsApp, Mail, AirDrop…). Il s'ouvre sur n'importe quel téléphone, même sans l'app.</p>
+      <div class="form-actions" style="justify-content:stretch">
+        <button type="button" class="btn" data-act="preview" style="flex:1">${ICON.eye}Voir le carnet</button>
+        <button type="button" class="btn primary" data-act="export-file" style="flex:1">${ICON.camera}Envoyer avec photos</button>
+      </div>
     </div>
   </div>`;
   document.body.appendChild(el);
@@ -1383,12 +1538,15 @@ document.addEventListener("click", e => {
   if (act === "copy-book") { const it = allItems().find(i => i.id === id); copy(bookingText(it), "Message de réservation copié"); return; }
   if (act === "del") {
     if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirmer la suppression ?"; return; }
-    S.extras = S.extras.filter(x => x.id !== id); delete S.done[id]; delete S.rating[id]; delete S.notes[id]; delete S.dishes[id]; delete S.cadre[id];
+    S.extras = S.extras.filter(x => x.id !== id); delete S.done[id]; delete S.rating[id]; delete S.notes[id]; delete S.dishes[id]; delete S.cadre[id]; (S.photos[id] || []).forEach(pid => PDB.del(pid).catch(() => {})); delete S.photos[id];
     save(); render(); toast("Activité supprimée"); return;
   }
   if (act === "guests") { S.guests = Math.max(1, Math.min(20, S.guests + (+b.dataset.v))); save(); $("#guests").textContent = S.guests; return; }
   if (act === "share") { openShare(); return; }
-  if (act === "leave-shared") { SHARED = null; document.body.classList.remove("shared"); try { history.replaceState({ r:routeOf() }, "", "#" + routeOf()); } catch(_) {} render(); SC.scrollTop = 0; return; }
+  if (act === "preview") { openPreview(); return; }
+  if (act === "export-file") { exportFile(); return; }
+  if (act === "ph-view") { openViewer(id, b.dataset.pid); return; }
+  if (act === "leave-shared") { const wasPreview = SHARED && SHARED.preview; SHARED = null; if (wasPreview) { document.body.classList.remove("shared"); render(); S.tab = "carnet"; render(); SC.scrollTop = 0; return; } document.body.classList.remove("shared"); try { history.replaceState({ r:routeOf() }, "", "#" + routeOf()); } catch(_) {} render(); SC.scrollTop = 0; return; }
   if (act === "export") {
     const lines = ["Mon voyage Casablanca & Rabat", ""];
     DAYS.forEach(d => {
@@ -1406,7 +1564,8 @@ document.addEventListener("click", e => {
   }
   if (act === "reset") {
     if (!resetArmed) { resetArmed = true; b.textContent = "Confirmer : tout effacer"; return; }
-    S = { v:2, done:{}, rating:{}, dishes:{}, cadre:{}, notes:{}, phones:{}, extras:[], guests:2, hotels:{ casa:"", rabat:"" }, tab:"infos", day:S.day };
+    S = { v:2, done:{}, rating:{}, dishes:{}, cadre:{}, photos:{}, notes:{}, phones:{}, extras:[], guests:2, hotels:{ casa:"", rabat:"" }, tab:"infos", day:S.day };
+    PDB.clear().catch(() => {});
     resetArmed = false; save(); render(); toast("Données effacées"); return;
   }
 });
@@ -1417,7 +1576,10 @@ document.addEventListener("input", e => {
   if (t.classList.contains("note")) { const v = t.value; if (v.trim()) S.notes[t.dataset.id] = v; else delete S.notes[t.dataset.id]; clearTimeout(window.__nt); window.__nt = setTimeout(save, 350); }
   if (t.dataset.hotel) { S.hotels[t.dataset.hotel] = t.value; save(); }
 });
-document.addEventListener("change", e => { if (e.target.dataset.hotel) render(); });
+document.addEventListener("change", e => {
+  if (e.target.dataset.hotel) render();
+  if (e.target.dataset.phInput) { const files = e.target.files; addPhotos(e.target.dataset.phInput, files); e.target.value = ""; }
+});
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
 
 (async () => {
