@@ -177,6 +177,11 @@ a{color:inherit}
 .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--fill);border-radius:10px;padding:2px;gap:2px}
 .seg button{border:0;background:none;padding:8px;border-radius:8px;font-weight:600;font-size:15px;color:var(--ink)}
 .seg.three{grid-template-columns:repeat(3,1fr)}
+.seg.scope{grid-template-columns:1.9fr repeat(4,1fr)}
+.seg.scope button{padding:8px 4px;font-size:14px}
+.mz-sheet .seg{background:color-mix(in srgb,var(--paper-line) 70%,transparent)}
+.mz-sheet .seg button{color:var(--paper-ink)}
+.mz-sheet .seg button[aria-pressed="true"]{background:var(--paper-card)}
 .seg button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
 .seg button svg{width:16px;height:16px}
 .seg button[aria-pressed="true"]{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.14),0 0 0 .5px rgba(0,0,0,.04)}
@@ -1134,9 +1139,12 @@ async function unpackShare(str){
   if (str[0] === "z") return JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).text());
   return JSON.parse(new TextDecoder().decode(bytes));
 }
-function sharePayload(withPhotos){
+/* Étendue du partage : "all" = tout le voyage, sinon l'identifiant d'un jour */
+let SHARE_SCOPE = "all";
+const inScope = (it, scope) => !scope || scope === "all" || it.day === scope;
+function sharePayload(withPhotos, scope = SHARE_SCOPE){
   const d = {};
-  allItems().forEach(i => {
+  allItems().filter(i => inScope(i, scope)).forEach(i => {
     const e = {};
     if (withPhotos && (S.photos[i.id] || []).length) e.k = 1;
     if (S.done[i.id]) e.o = 1;
@@ -1146,11 +1154,11 @@ function sharePayload(withPhotos){
     if (S.cadre[i.id]) e.c = S.cadre[i.id];
     if (Object.keys(e).length) d[i.id] = e;
   });
-  return { n:(S.name || "").trim(), t:Date.now(), x:S.extras.map(({ id, day, time, title, cat, addr, food }) => ({ id, day, time, title, cat, addr, food })), d };
+  return { n:(S.name || "").trim(), t:Date.now(), s:scope === "all" ? undefined : scope, x:S.extras.filter(x => inScope(x, scope)).map(({ id, day, time, title, cat, addr, food }) => ({ id, day, time, title, cat, addr, food })), d };
 }
 /* Version avec photos : pour l'aperçu (adresses locales) ou le fichier (images intégrées) */
-async function payloadWithPhotos(mode){
-  const D = sharePayload(true); D.ph = {};
+async function payloadWithPhotos(mode, scope = SHARE_SCOPE){
+  const D = sharePayload(true, scope); D.ph = {};
   for (const [id, ids] of Object.entries(S.photos)) {
     if (!D.d[id]) continue;
     const out = [];
@@ -1164,20 +1172,22 @@ async function payloadWithPhotos(mode){
   }
   return D;
 }
-async function openPreview(){
-  const D = await payloadWithPhotos("preview"); D.preview = true;
+async function openPreview(scope = SHARE_SCOPE){
+  const D = await payloadWithPhotos("preview", scope); D.preview = true;
   closeSheet(); SHARED = D; document.body.classList.add("shared"); render(); SC.scrollTop = 0;
 }
-async function exportFile(){
+async function exportFile(scope = (SHARED && SHARED.preview) ? (SHARED.s || "all") : SHARE_SCOPE){
   toast("Préparation du carnet avec les photos…");
-  const D = await payloadWithPhotos("file");
+  const D = await payloadWithPhotos("file", scope);
   const css = document.querySelector("style").textContent + `
 html,body{height:auto!important;overflow:visible!important;position:static!important;touch-action:auto!important;-webkit-user-select:text!important;user-select:text!important}
 body::before{display:none!important}`;
   const fonts = document.querySelector('link[href*="fonts.googleapis"]')?.outerHTML || "";
-  const title = D.n ? `Le carnet de ${D.n}` : "Carnet de voyage";
+  const title = (D.n ? `Le carnet de ${D.n}` : "Carnet de voyage") + (D.s ? " · " + (DAYS.find(x => x.id === D.s)?.name || "") : "");
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)} · marhaba</title>${fonts}<style>${css}</style></head><body class="shared export">${renderShared(D)}</body></html>`;
-  const name = `carnet-marhaba${D.n ? "-" + D.n.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") : ""}.html`;
+  const slug = t => t.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const dayName = D.s ? DAYS.find(x => x.id === D.s)?.name : "";
+  const name = `carnet-marhaba${D.n ? "-" + slug(D.n) : ""}${dayName ? "-" + slug(dayName) : ""}.html`;
   const file = new File([html], name, { type:"text/html" });
   try {
     if (navigator.canShare && navigator.canShare({ files:[file] })) { await navigator.share({ files:[file], title }); return; }
@@ -1186,7 +1196,7 @@ body::before{display:none!important}`;
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast("Carnet enregistré dans tes fichiers");
 }
-async function shareURL(){ return SHARE_BASE + "#partage=" + await packShare(sharePayload()); }
+async function shareURL(scope = SHARE_SCOPE){ return SHARE_BASE + "#partage=" + await packShare(sharePayload(false, scope)); }
 
 const ORN = {
   arch:'<svg viewBox="0 0 64 78" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 76V40C6 23 18 11 32 2c14 9 26 21 26 38v36"/><path d="M16 76V42c0-11 7-19 16-25 9 6 16 14 16 25v34" opacity=".5"/><path transform="translate(23.6 44.5) scale(.7)" d="M12 2.5L17.6 19.7L2.96 9.09H21.04L6.4 19.7Z" stroke="var(--paper-green)" stroke-width="2.6" stroke-linejoin="miter"/></svg>',
@@ -1204,7 +1214,7 @@ function pentaStars(v){
   }).join("")}</span>`;
 }
 function renderShared(D){
-  const foot = `<div class="mz-foot">${D.preview ? `<div class="mz-tools"><button class="mz-link" data-act="export-file">Envoyer ce carnet avec les photos</button></div>` : ""}<button class="mz-link" data-act="leave-shared">${D.preview ? "Revenir à l'app" : "Ouvrir mon propre carnet"}</button><span class="brand-mini">${ORN.logo}marhaba</span></div>`;
+  const foot = `<div class="mz-foot">${D.preview ? `<div class="mz-tools"><button class="mz-link" data-act="export-file">Envoyer ${D.s ? "cette journée" : "ce carnet"} avec les photos</button></div>` : ""}<button class="mz-link" data-act="leave-shared">${D.preview ? "Revenir à l'app" : "Ouvrir mon propre carnet"}</button><span class="brand-mini">${ORN.logo}marhaba</span></div>`;
   if (D.error) return `<div class="wrap"><div class="mz"><div class="mz-head"><span class="mz-arch">${ORN.arch}</span><span class="mz-kicker">Carnet partagé</span><h1>Lien illisible</h1><p class="mz-sub">Ce lien est incomplet ou abîmé. Demande à la personne de te le renvoyer.</p></div>${foot}</div></div>`;
   const cuis = e => { const ds = (e.p || []).filter(x => x[1] > 0); return ds.length ? ds.reduce((a, x) => a + x[1], 0) / ds.length : 0; };
   const score = e => combine(cuis(e), e.c || 0, e.r);
@@ -1228,12 +1238,13 @@ function renderShared(D){
       ${(D.ph && D.ph[i.id] || []).length ? `<div class="mz-photos n${Math.min(3, D.ph[i.id].length)}">${D.ph[i.id].map(src => `<figure class="mz-ph"><img src="${esc(src)}" alt="Photo · ${esc(i.title)}" loading="lazy"></figure>`).join("")}</div>` : ""}
       ${e.m ? `<p class="mz-note">${esc(e.m)}</p>` : ""}
     </li>`; };
+  const dOnly = D.s ? DAYS.find(x => x.id === D.s) : null;
   return `<div class="wrap"><article class="mz">
     <header class="mz-head">
       <span class="mz-arch" aria-hidden="true">${ORN.arch}</span>
-      <span class="mz-kicker">Carnet de voyage</span>
-      <h1>${D.n ? "Le carnet de " + esc(D.n) : "Casablanca &amp; Rabat"}</h1>
-      <p class="mz-sub">${D.n ? "Casablanca &amp; Rabat · " : ""}${esc(when)}</p>
+      <span class="mz-kicker">${dOnly ? "Carnet · une journée" : "Carnet de voyage"}</span>
+      <h1>${D.n ? "Le carnet de " + esc(D.n) : (dOnly ? esc(dOnly.name) : "Casablanca &amp; Rabat")}</h1>
+      <p class="mz-sub">${dOnly ? (D.n ? esc(dOnly.name) + " · " : "") + esc(dOnly.city) + " · " : (D.n ? "Casablanca &amp; Rabat · " : "")}${esc(when)}</p>
     </header>
     ${orn}
     <div class="mz-stats">
@@ -1243,7 +1254,7 @@ function renderShared(D){
     </div>
     ${best ? `<p class="mz-fav">Coup de cœur · <b>${esc(best.title)}</b></p>` : ""}
     ${groups.length ? groups.map(g => `<div class="mz-day">${ORN.dot}${g.day.name}${ORN.dot}</div><p class="mz-city">${esc(g.day.city)}</p><ul class="mz-list">${g.list.map(place).join("")}</ul>`).join("")
-      : `<p class="mz-empty">Ce carnet ne contient encore aucune note.</p>`}
+      : `<p class="mz-empty">${dOnly ? "Rien de noté pour cette journée." : "Ce carnet ne contient encore aucune note."}</p>`}
     ${orn}
     ${foot}
   </article></div>`;
@@ -1257,6 +1268,9 @@ function openShare(){
     <h3 id="shTitle">Partager mon carnet</h3>
     <p class="mz-sub">Une page simple avec tes lieux, tes plats et tes notes.</p>
     <div class="form">
+      <div class="field">Que veux-tu partager ?<div class="seg scope" role="radiogroup" aria-label="Étendue du partage">
+        ${[["all","Tout le voyage"], ...DAYS.map(d => [d.id, d.short])].map(([v, l]) => `<button type="button" role="radio" data-scope="${v}" aria-pressed="${SHARE_SCOPE === v}" aria-checked="${SHARE_SCOPE === v}">${l}</button>`).join("")}
+      </div></div>
       <label class="field" for="sh-name">Ton prénom (affiché en haut du carnet)<input id="sh-name" value="${esc(S.name || "")}" placeholder="facultatif" autocomplete="given-name"></label>
       <p class="lead" style="margin:0">Le lien contient tes notes, tes plats et tes avis tels qu'ils sont maintenant. La personne les voit en lecture seule. Si tu ajoutes des notes, renvoie un nouveau lien.</p>
       <textarea class="share-link" id="sh-link" readonly aria-label="Lien de partage">Préparation du lien…</textarea>
@@ -1275,7 +1289,13 @@ function openShare(){
   </div>`;
   document.body.appendChild(el);
   let url = "";
-  const refresh = async () => { url = await shareURL(); const t = $("#sh-link"); if (t) t.value = url; };
+  const refresh = async () => { url = await shareURL(SHARE_SCOPE); const t = $("#sh-link"); if (t) t.value = url; };
+  el.querySelector(".seg.scope").addEventListener("click", e => {
+    const b = e.target.closest("[data-scope]"); if (!b) return;
+    SHARE_SCOPE = b.dataset.scope;
+    el.querySelectorAll("[data-scope]").forEach(x => { const on = x === b; x.setAttribute("aria-pressed", on); x.setAttribute("aria-checked", on); });
+    url = ""; const t = $("#sh-link"); if (t) t.value = "Préparation du lien…"; refresh(); haptic();
+  });
   refresh();
   let tm; $("#sh-name").addEventListener("input", e => { S.name = e.target.value; save(); clearTimeout(tm); tm = setTimeout(refresh, 250); });
   $("#sh-copy").addEventListener("click", async () => { if (!url) await refresh(); try { await navigator.clipboard.writeText(url); toast("Lien copié"); } catch(e) { const t = $("#sh-link"); t.focus(); t.select(); toast("Sélectionne le lien et copie-le"); } });
@@ -1411,7 +1431,15 @@ function go(route, opts = {}){
   const info = makePeek(route, side);
   slide(route, info, side);
 }
-window.addEventListener("popstate", () => { if (SHARED) return; const r = (location.hash || "").slice(1); closeSheet(); if (ROUTES.includes(r)) go(r, { instant:true }); });
+/* Un nouveau lien de partage ouvert dans le même onglet : on le relit */
+window.addEventListener("hashchange", async () => {
+  const h = location.hash || "";
+  if (!h.startsWith("#partage=")) return;
+  document.body.classList.add("shared");
+  try { SHARED = await unpackShare(decodeURIComponent(h.slice(9))); } catch(e) { SHARED = { error:true }; }
+  render(); SC.scrollTop = 0;
+});
+window.addEventListener("popstate", () => { if (SHARED || (location.hash || "").startsWith("#partage=")) return; const r = (location.hash || "").slice(1); closeSheet(); if (ROUTES.includes(r)) go(r, { instant:true }); });
 document.querySelector(".nav").addEventListener("click", e => {
   const b = e.target.closest("button[data-tab]"); if (!b) return;
   if (b.dataset.tab === S.tab) { SC.scrollTo({ top:0, behavior:"smooth" }); return; }
@@ -1570,7 +1598,7 @@ document.addEventListener("click", e => {
   if (act === "theme") { applyTheme(b.dataset.v, true); return; }
   if (act === "guests") { S.guests = Math.max(1, Math.min(20, S.guests + (+b.dataset.v))); save(); $("#guests").textContent = S.guests; return; }
   if (act === "share") { openShare(); return; }
-  if (act === "preview") { openPreview(); return; }
+  if (act === "preview") { openPreview(b.closest(".mz-sheet") ? SHARE_SCOPE : "all"); return; }
   if (act === "export-file") { exportFile(); return; }
   if (act === "ph-view") { openViewer(id, b.dataset.pid); return; }
   if (act === "leave-shared") { const wasPreview = SHARED && SHARED.preview; SHARED = null; if (wasPreview) { document.body.classList.remove("shared"); render(); S.tab = "carnet"; render(); SC.scrollTop = 0; return; } document.body.classList.remove("shared"); try { history.replaceState({ r:routeOf() }, "", "#" + routeOf()); } catch(_) {} render(); SC.scrollTop = 0; return; }
